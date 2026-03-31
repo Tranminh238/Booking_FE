@@ -54,7 +54,7 @@ const Register = () => {
       });
 
       const data = await response.json();
-      
+
 
       if (data.status === 200) {
         setToastType("success");

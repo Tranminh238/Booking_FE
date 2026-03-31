@@ -20,7 +20,7 @@ const Login = () => {
                     password: password
                 })
             });
-            
+
             const data = await response.json();
 
 
@@ -29,7 +29,7 @@ const Login = () => {
                 setToastMessage("Đăng nhập thành công!");
                 localStorage.setItem("isAuthenticated", "true");
                 localStorage.setItem("userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
-                
+
                 // Lưu firstName, lastName từ API trả về
                 if (data.data) {
                     localStorage.setItem("firstName", data.data.firstName || "");
@@ -58,7 +58,7 @@ const Login = () => {
                 <h2 className="text-2xl font-semibold mb-6 text-center text-gray-800">
                     Welcome back
                 </h2>
-                
+
                 {toastMessage && (
                     <div className={`mb-4 text-center p-2 rounded ${toastType === "error" ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
                         {toastMessage}

@@ -12,7 +12,7 @@ const Header = () => {
                 // TODO: Hãy thay URL bên dưới bằng API thực tế từ Backend (Ví dụ: Spring Boot)
                 // const response = await fetch('http://localhost:8080/api/destinations-and-hotels');
                 // const dataFromDB = await response.json();
-                
+
                 // --- Bắt đầu Dữ liệu giả lập (Xoá phần này khi có API thực) ---
                 const dataFromDB = [
                     "Hà Nội (Thành phố)", "Nha Trang (Thành phố)", "Đà Nẵng (Thành phố)",
@@ -52,7 +52,7 @@ const Header = () => {
                     </div>
                     <input list='destinations' id="destinationInput" type="text" className="w-full rounded border border-gray-200 px-3 py-2 mt-1.5 text-sm outline-none focus:border-indigo-500" placeholder="Bạn muốn đi đâu?" required />
                     <datalist id="destinations">
-                        {destinations.map((destination, index)=>(
+                        {destinations.map((destination, index) => (
                             <option value={destination} key={index} />
                         ))}
                     </datalist>
