@@ -65,9 +65,9 @@ const Navbar = () => {
             </div>
 
             <div className="hidden sm:flex items-center gap-8">
-                <a href="Home">Trang Chủ</a>
-                <a href="About">Khách sạn</a>
-                <a href="Contact">Hỗ trợ</a>
+                <Link to="/">Trang Chủ</Link>
+                <Link to="About">Khách sạn</Link>
+                <Link to="Contact">Hỗ trợ</Link>
                 <a href="MyBooking">Chỗ Đặt Của Tôi</a>
                 {isAuthenticated ? (
                     <div className="relative">

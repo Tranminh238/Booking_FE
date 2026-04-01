@@ -1,0 +1,79 @@
+.popular-destinations {
+  padding: 40px 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.popular-destinations h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+}
+
+.popular-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+}
+
+.popular-tab {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+  background-color: transparent;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.popular-tab:hover {
+  background-color: #f5f5f5;
+}
+
+.popular-tab.active {
+  color: #006ce4;
+  background-color: #f0f6ff;
+  border: 1px solid #006ce4;
+  box-shadow: 0 0 0 1px #006ce4 inset;
+}
+
+.destinations-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.destination-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.destination-item {
+  color: #333;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.destination-item:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .destinations-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .destinations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

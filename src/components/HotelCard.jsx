@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Skeleton } from 'antd';
 import { EnvironmentOutlined, StarFilled, ArrowRightOutlined, FireOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import HaNoi from '../assets/HaNoi.jpg';
+import HoChiMinh from '../assets/HoChiMinh.jpg';
+import DaNang from '../assets/DaNang.jpg';
+import HoiAn from '../assets/HoiAn.jpg';
+import NhaTrang from '../assets/NhaTrang.jpg';
+import PhuQuoc from '../assets/PhuQuoc.jpg';
+import Hue from '../assets/Hue.jpg';
+import VungTau from '../assets/VungTau.jpg';
+import DaLat from '../assets/Dalat.jpg';
+import SaPa from '../assets/Sapa.png';
 
 const { Title, Text } = Typography;
 
@@ -13,7 +23,7 @@ const TOP_CITIES = [
         hotels: 1240,
         rating: 4.8,
         bookings: 98500,
-        imageUrl: 'https://images.unsplash.com/photo-1509679271800-4ec0ff65cf01?w=400&q=80',
+        imageUrl: HaNoi,
     },
     {
         code: 'SGN',
@@ -21,7 +31,7 @@ const TOP_CITIES = [
         hotels: 1850,
         rating: 4.7,
         bookings: 125000,
-        imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400&q=80',
+        imageUrl: HoChiMinh,
     },
     {
         code: 'DAD',
@@ -29,7 +39,7 @@ const TOP_CITIES = [
         hotels: 920,
         rating: 4.9,
         bookings: 87300,
-        imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=400&q=80',
+        imageUrl: DaNang,
     },
     {
         code: 'HOI',
@@ -37,7 +47,7 @@ const TOP_CITIES = [
         hotels: 540,
         rating: 4.8,
         bookings: 64200,
-        imageUrl: 'https://images.unsplash.com/photo-1573644664636-6f0b6b3e5e76?w=400&q=80',
+        imageUrl: HoiAn,
     },
     {
         code: 'NHA',
@@ -45,7 +55,7 @@ const TOP_CITIES = [
         hotels: 780,
         rating: 4.6,
         bookings: 72100,
-        imageUrl: 'https://images.unsplash.com/photo-1562602833-0f4ab2fc46e3?w=400&q=80',
+        imageUrl: NhaTrang,
     },
     {
         code: 'PHU',
@@ -53,7 +63,7 @@ const TOP_CITIES = [
         hotels: 630,
         rating: 4.9,
         bookings: 91000,
-        imageUrl: 'https://images.unsplash.com/photo-1582719471137-c3967ffb1c42?w=400&q=80',
+        imageUrl: PhuQuoc,
     },
     {
         code: 'HUE',
@@ -61,7 +71,7 @@ const TOP_CITIES = [
         hotels: 410,
         rating: 4.6,
         bookings: 48700,
-        imageUrl: 'https://images.unsplash.com/photo-1600851717760-cca02cb1ac9f?w=400&q=80',
+        imageUrl: Hue,
     },
     {
         code: 'VTU',
@@ -69,7 +79,7 @@ const TOP_CITIES = [
         hotels: 520,
         rating: 4.5,
         bookings: 55400,
-        imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80',
+        imageUrl: VungTau,
     },
     {
         code: 'DLA',
@@ -77,7 +87,7 @@ const TOP_CITIES = [
         hotels: 460,
         rating: 4.7,
         bookings: 61800,
-        imageUrl: 'https://images.unsplash.com/photo-1555921015-5532091f6026?w=400&q=80',
+        imageUrl: DaLat,
     },
     {
         code: 'SAP',
@@ -85,7 +95,7 @@ const TOP_CITIES = [
         hotels: 310,
         rating: 4.8,
         bookings: 43500,
-        imageUrl: 'https://images.unsplash.com/photo-1552537376-3abf35237215?w=400&q=80',
+        imageUrl: SaPa,
     },
 ];
 
@@ -154,13 +164,14 @@ const HotelCard = ({ onCityClick }) => {
         return (
             <div className="relative mt-8">
                 {/* Arrow Left */}
-                <button
-                    onClick={handlePrev}
-                    disabled={startIndex === 0}
-                    className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                    <LeftOutlined style={{ fontSize: 14 }} />
-                </button>
+                {startIndex > 0 && (
+                    <button
+                        onClick={handlePrev}
+                        className="absolute -left-4 md:-left-5 top-1/2 -translate-y-8 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                    >
+                        <LeftOutlined style={{ fontSize: 14 }} />
+                    </button>
+                )}
 
                 {/* Viewport: ẩn phần tràn ra ngoài */}
                 <div style={{ overflow: 'hidden' }}>
@@ -234,13 +245,14 @@ const HotelCard = ({ onCityClick }) => {
                 </div>
 
                 {/* Arrow Right */}
-                <button
-                    onClick={handleNext}
-                    disabled={startIndex >= maxStart}
-                    className="absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                    <RightOutlined style={{ fontSize: 14 }} />
-                </button>
+                {startIndex < maxStart && (
+                    <button
+                        onClick={handleNext}
+                        className="absolute -right-4 md:-right-5 top-1/2 -translate-y-8 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                    >
+                        <RightOutlined style={{ fontSize: 14 }} />
+                    </button>
+                )}
             </div>
         );
     };
@@ -260,8 +272,8 @@ const HotelCard = ({ onCityClick }) => {
     };
 
     return (
-        <section className="py-12 bg-gray-50">
-            <div className="container mx-auto px-4 max-w-7xl">
+        <section className="py-12 bg-gray-50 overflow-x-hidden">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
                 {/* Header */}
                 <div className="text-center mb-2">
                     <Text className="text-indigo-600 font-semibold uppercase tracking-widest text-sm">
