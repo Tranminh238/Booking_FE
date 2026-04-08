@@ -2,16 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Typography, Skeleton } from 'antd';
 import { EnvironmentOutlined, StarFilled, ArrowRightOutlined, FireOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import HaNoi from '../assets/HaNoi.jpg';
-import HoChiMinh from '../assets/HoChiMinh.jpg';
-import DaNang from '../assets/DaNang.jpg';
-import HoiAn from '../assets/HoiAn.jpg';
-import NhaTrang from '../assets/NhaTrang.jpg';
-import PhuQuoc from '../assets/PhuQuoc.jpg';
-import Hue from '../assets/Hue.jpg';
-import VungTau from '../assets/VungTau.jpg';
-import DaLat from '../assets/Dalat.jpg';
-import SaPa from '../assets/Sapa.png';
+import HaNoi from '../../../assets/HaNoi.jpg';
+import HoChiMinh from '../../../assets/HoChiMinh.jpg';
+import DaNang from '../../../assets/DaNang.jpg';
+import HoiAn from '../../../assets/HoiAn.jpg';
+import NhaTrang from '../../../assets/NhaTrang.jpg';
+import PhuQuoc from '../../../assets/PhuQuoc.jpg';
+import Hue from '../../../assets/Hue.jpg';
+import VungTau from '../../../assets/VungTau.jpg';
+import DaLat from '../../../assets/Dalat.jpg';
+import SaPa from '../../../assets/Sapa.png';
 
 const { Title, Text } = Typography;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import headerImg from '../assets/header.png'
-
+import headerImg from "../../../assets/header.png"
+    
 const Header = () => {
     // Biến state lưu kết quả tìm kiếm từ database
     const [destinations, setDestinations] = useState([]);
@@ -83,7 +83,7 @@ const Header = () => {
                 {/* Guests Input */}
                 <div className='flex-[0.5] w-full'>
                     <label htmlFor="guests" className="block text-sm mb-1.5 font-medium">Số khách</label>
-                    <input min={1} max={10} id="guests" type="number" className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" defaultValue="2" />
+                    <input min={1} max={10} id="guests" type="number" className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" defaultValue="0" />
                 </div>
 
                 {/* Submit Button */}

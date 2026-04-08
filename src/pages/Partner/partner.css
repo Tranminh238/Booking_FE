@@ -1,0 +1,188 @@
+/* ==============================
+   Partner Page - partner.css
+   ============================== */
+
+/* Page wrapper - fills space below the shared App-level Navbar */
+.partner-page {
+    min-height: calc(100vh - 70px);
+    background-color: #6366F1;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main section */
+.partner-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 48px 32px;
+}
+
+/* Container: two columns */
+.partner-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+}
+
+/* ==============================
+   Hero (Left Column)
+   ============================== */
+.partner-hero {
+    flex: 1;
+    color: #ffffff;
+    max-width: 560px;
+}
+
+.partner-hero__title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    color: #ffffff;
+}
+
+.partner-hero__title--highlight {
+    color: #b0dbee;
+}
+
+.partner-hero__desc {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #d0e8ff;
+    max-width: 460px;
+}
+
+/* ==============================
+   Register Card (Right Column)
+   ============================== */
+.partner-card {
+    background: #ffffff;
+    border: 3px solid #f0a500;
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 380px;
+    min-width: 340px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.partner-card__title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+/* Benefits list */
+.partner-card__benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.partner-card__benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.92rem;
+    color: #333;
+    line-height: 1.5;
+}
+
+.partner-card__checkmark {
+    color: #28a745;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* CTA Button */
+.partner-card__cta-btn {
+    display: block;
+    background-color: #1a4fa0;
+    color: #ffffff;
+    text-align: center;
+    padding: 14px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    letter-spacing: 0.3px;
+}
+
+.partner-card__cta-btn:hover {
+    background-color: #163d80;
+    transform: translateY(-1px);
+}
+
+/* Footer */
+.partner-card__footer {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.partner-card__footer-text {
+    font-size: 0.88rem;
+    color: #555;
+    margin: 0;
+    font-weight: 600;
+}
+
+.partner-card__footer-link {
+    font-size: 0.88rem;
+    color: #1a4fa0;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.partner-card__footer-link:hover {
+    color: #163d80;
+    text-decoration: underline;
+}
+
+/* ==============================
+   Responsive
+   ============================== */
+@media (max-width: 900px) {
+    .partner-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 36px;
+    }
+
+    .partner-hero__title {
+        font-size: 2rem;
+    }
+
+    .partner-card {
+        width: 100%;
+        min-width: unset;
+    }
+}
+
+@media (max-width: 540px) {
+    .partner-main {
+        padding: 32px 16px;
+    }
+
+    .partner-hero__title {
+        font-size: 1.6rem;
+    }
+}
