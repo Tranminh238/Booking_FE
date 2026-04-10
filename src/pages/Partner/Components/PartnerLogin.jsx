@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-const PartnerLogin = ({ onLoginClick }) => {
+const PartnerLogin = () => {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -27,13 +27,13 @@ const PartnerLogin = ({ onLoginClick }) => {
             if (response.ok && data.status === 200) {
                 setToastType("success");
                 setToastMessage("Đăng nhập thành công!");
-                localStorage.setItem("isAuthenticated", "true");
-                localStorage.setItem("userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
+                localStorage.setItem("partner_isAuthenticated", "true");
+                localStorage.setItem("partner_userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
 
                 // Lưu firstName, lastName từ API trả về
                 if (data.data) {
-                    localStorage.setItem("firstName", data.data.firstName || "");
-                    localStorage.setItem("lastName", data.data.lastName || "");
+                    localStorage.setItem("partner_firstName", data.data.firstName || "");
+                    localStorage.setItem("partner_lastName", data.data.lastName || "");
                 }
 
                 // Lưu token ở đây nếu cần

@@ -7,22 +7,22 @@ const PartnerNavbar = () => {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const navigate = useNavigate(); 
 
-    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-    const role = localStorage.getItem("role"); 
-    const userName = localStorage.getItem("userName");
-    const firstName = localStorage.getItem("firstName") || "";      
-    const lastName = localStorage.getItem("lastName") || "";
+    const isAuthenticated = localStorage.getItem("partner_isAuthenticated") === "true";
+    const role = localStorage.getItem("partner_role"); 
+    const userName = localStorage.getItem("partner_userName");
+    const firstName = localStorage.getItem("partner_firstName") || "";      
+    const lastName = localStorage.getItem("partner_lastName") || "";
     
     const displayName = (firstName || lastName) 
         ? `${firstName} ${lastName}`.trim() 
         : (userName || "Tài khoản");
 
     const handleLogout = () => {
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("userName");
-        localStorage.removeItem("firstName");
-        localStorage.removeItem("lastName");
-        localStorage.removeItem("role");
+        localStorage.removeItem("partner_isAuthenticated");
+        localStorage.removeItem("partner_userName");
+        localStorage.removeItem("partner_firstName");
+        localStorage.removeItem("partner_lastName");
+        localStorage.removeItem("partner_role");
         
         setIsProfileMenuOpen(false);
         
@@ -36,6 +36,9 @@ const PartnerNavbar = () => {
                 <img className="h-9" src={logo} alt="Hotel Logo" />
             </Link>
             <div className="hidden sm:flex items-center gap-8">
+                <Link to="/" className="hidden sm:flex items-center gap-8">
+                    Trang Chủ
+                </Link> 
                 {isAuthenticated ? (
                     <div className="relative">
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
@@ -43,12 +46,9 @@ const PartnerNavbar = () => {
                         </button>
                         {isProfileMenuOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
-                                {(role === "PARTNER") && (
-                                    <Link to="/partner-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
-                                        Trang Quản Lý
-                                    </Link>
-                                )}
-
+                                <Link to="/partner-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
+                                    Trang Quản Lý
+                                </Link>
                                 <button 
                                     onClick={handleLogout} 
                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
