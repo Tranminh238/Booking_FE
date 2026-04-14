@@ -34,6 +34,7 @@ const PartnerLogin = () => {
                 if (data.data) {
                     localStorage.setItem("partner_firstName", data.data.firstName || "");
                     localStorage.setItem("partner_lastName", data.data.lastName || "");
+                    localStorage.setItem("partner_userId", data.data.userId || "");
                 }
 
                 // Lưu token ở đây nếu cần

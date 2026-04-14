@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import logo from "../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom"; // Thêm useNavigate
 
@@ -6,6 +6,7 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const navigate = useNavigate(); // Khởi tạo điều hướng
+    const profileMenuRef = useRef(null);
 
     // Lấy dữ liệu từ localStorage
     const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
@@ -13,6 +14,18 @@ const Navbar = () => {
     const userName = localStorage.getItem("userName");
     const firstName = localStorage.getItem("firstName") || "";
     const lastName = localStorage.getItem("lastName") || "";
+
+    useEffect(() => {
+            const handleClickOutside = (event) => {
+                if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                    setIsProfileMenuOpen(false);
+                }
+            };
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }, []);
     
     const displayName = (firstName || lastName) 
         ? `${firstName} ${lastName}`.trim() 
@@ -34,7 +47,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-300 bg-white relative transition-all">
+        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all">
             <Link to="/">
                 <img className="h-9" src={logo} alt="Hotel Logo" />
             </Link>
@@ -45,19 +58,17 @@ const Navbar = () => {
                 <Link to="/MyBooking">Chỗ Đặt Của Tôi</Link>
                 
                 {isAuthenticated ? (
-                    <div className="relative">
+                    <div className="relative" ref={profileMenuRef}>
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
                             {displayName}
                         </button>
                         {isProfileMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
-                                {/* ĐIỀU KIỆN HIỂN THỊ NÚT ADMIN/PARTNER */}
-                                {(role === "ADMIN" || role === "PARTNER") && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50" >
+                                {(role === "ADMIN") &&
                                     <Link to="/admin" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
                                         Trang Quản Lý
                                     </Link>
-                                )}
-                                
+                                }
                                 <button 
                                     onClick={handleLogout} 
                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"

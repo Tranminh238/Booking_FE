@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../../assets/logo.png';
 
 const PartnerNavbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
+    const profileMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const isAuthenticated = localStorage.getItem("partner_isAuthenticated") === "true";
     const role = localStorage.getItem("partner_role"); 
@@ -40,7 +53,7 @@ const PartnerNavbar = () => {
                     Trang Chủ
                 </Link> 
                 {isAuthenticated ? (
-                    <div className="relative">
+                    <div className="relative" ref={profileMenuRef}>
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
                             {displayName}
                         </button>

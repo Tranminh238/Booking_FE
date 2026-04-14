@@ -6,6 +6,7 @@ import PartnerNavbar from "./Components/PartnerNavbar";
 import PartnerLogin from "./Components/PartnerLogin";
 import PartnerRegister from "./Components/PartnerRegister";
 import "./partner.css";
+import Footer from "../../components/Footer";
 
 const Partner = () => {
     const location = useLocation();
@@ -20,6 +21,7 @@ const Partner = () => {
                     <PartnerRegisterCard />
                 </div>
             </main>
+            <Footer />
 
             {/* Modal Overlays */}
             {isLogin && <PartnerLogin />}
