@@ -15,10 +15,11 @@ const App = () => {
   const location = useLocation();
   const isOwnerPath = location.pathname.includes("owner");
   const isPartnerPath = location.pathname.startsWith("/partner") || location.pathname.includes("-partner");
+  const isAdminPath = location.pathname.startsWith("/admin");
 
   return (
     <div>
-      {!isOwnerPath && !isPartnerPath && <Navbar />}
+      {!isOwnerPath && !isPartnerPath && !isAdminPath && <Navbar />}
       <div className='min-h-[70vh]'>
         <Routes>  
           <Route path='/' element={<Home />} />   
@@ -26,7 +27,7 @@ const App = () => {
           <Route path='/register' element={<Register />} />
           <Route path='/login-partner' element={<Partner />} />
           <Route path='/register-partner' element={<Partner />} />
-          <Route path='/admin' element={<Admin />} />
+          <Route path='/admin-dashboard/*' element={<Admin />} />
           <Route path='/partner-dashboard/*' element={<PartnerDashboard />} />
           <Route path='/partner' element={<Partner />} />
         </Routes>

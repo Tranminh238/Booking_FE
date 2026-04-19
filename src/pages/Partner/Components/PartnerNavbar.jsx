@@ -44,7 +44,7 @@ const PartnerNavbar = () => {
     };
 
     return (
-        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-4 border-b border-gray-300 bg-white relative transition-all">
+        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-16 py-2 border-b border-gray-300 bg-white relative transition-all">
             <Link to="/partner">
                 <img className="h-9" src={logo} alt="Hotel Logo" />
             </Link>
@@ -59,9 +59,15 @@ const PartnerNavbar = () => {
                         </button>
                         {isProfileMenuOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
-                                <Link to="/partner-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
-                                    Trang Quản Lý
-                                </Link>
+                                {role === "ADMIN" ? (
+                                    <Link to="/admin-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
+                                        Trang admin
+                                    </Link>
+                                ) : (
+                                    <Link to="/partner-dashboard" onClick={() => setIsProfileMenuOpen(false)} className="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100 font-bold">
+                                        Trang quản lý
+                                    </Link>
+                                )}
                                 <button 
                                     onClick={handleLogout} 
                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"

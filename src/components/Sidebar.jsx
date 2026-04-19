@@ -24,7 +24,7 @@ export default function Sidebar({ role }) {
   const menuItems = currentRole === 'admin' ? adminMenu : partnerMenu;
 
   return (
-    <aside className="w-50 h-full bg-white border-r border-gray-200 shadow-sm flex flex-col">
+    <aside className="w-60 h-full bg-white border-r border-gray-200 shadow-sm flex flex-col">
       {/* <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-bold text-indigo-700">
           {currentRole === 'admin' ? 'Hệ thống Admin' : 'Quản lý Đối tác'}

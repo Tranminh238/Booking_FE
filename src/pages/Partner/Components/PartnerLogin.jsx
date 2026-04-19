@@ -35,11 +35,15 @@ const PartnerLogin = () => {
                     localStorage.setItem("partner_firstName", data.data.firstName || "");
                     localStorage.setItem("partner_lastName", data.data.lastName || "");
                     localStorage.setItem("partner_userId", data.data.userId || "");
+                    localStorage.setItem("partner_role", data.data.role || "");
                 }
 
-                // Lưu token ở đây nếu cần
                 setTimeout(() => {
-                    window.location.href = "/partner";
+                    if (data.data && data.data.role === "ADMIN") {
+                        window.location.href = "/partner";
+                    } else {
+                        window.location.href = "/partner";
+                    }
                 }, 100);
             } else {
                 setToastType("error");

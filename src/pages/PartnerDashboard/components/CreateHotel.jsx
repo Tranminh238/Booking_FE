@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useHotels } from '../../../api/HotelContext';
 import '../partnerDashboard.css';
+import CreateRoom from './CreateRoom';
 
 // Tạo danh sách giờ HH:00 từ 00:00 → 23:00
 const HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
@@ -443,7 +444,7 @@ function UploadGrid({ data, field, refEl, onChange }) {
               style={{
                 position: 'absolute', top: '-7px', right: '-7px',
                 width: '20px', height: '20px', borderRadius: '50%',
-                background: '#ef4444', color: 'white', border: 'none',
+                background: 'white', color: 'black', border: 'none',
                 cursor: 'pointer', fontSize: '14px', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
@@ -469,13 +470,13 @@ function StepMedia({ data, onChange, onBack, onSubmit, loading }) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmitForm = (e) => {
     e.preventDefault();
-    if (validate()) onSubmit();
+    if (validate()) onSubmit(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="pd-form__inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <form onSubmit={handleSubmitForm} className="pd-form__inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="pd-form__step-badge">Bước 5 / 5</div>
       <h2 className="pd-form__title">Hình ảnh &amp; Giấy tờ</h2>
       <p className="pd-form__subtitle">Tải lên hình ảnh khách sạn và giấy tờ xác nhận kinh doanh</p>
@@ -498,19 +499,22 @@ function StepMedia({ data, onChange, onBack, onSubmit, loading }) {
         <button type="button" onClick={onBack} className="pd-form__btn-secondary">
           ← Quay lại
         </button>
+
         <button type="submit" className="pd-form__btn-primary" disabled={loading}>
-          {loading ? 'Đang lưu...' : 'Tạo chỗ nghỉ'}
+          {loading ? 'Đang lưu...' : 'Lưu chỗ nghỉ'}
         </button>
       </div>
     </form>
   );
 }
 
-export default function CreateHotel() {
-  const { setShowAddModal, fetchHotels } = useHotels();
+export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
+  const { setShowAddModal, fetchHotels, setPendingFilter } = useHotels();
   const [showForm, setShowForm] = useState(false);
+  const [showRoomForm, setShowRoomForm] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initialRoomHotelId, setInitialRoomHotelId] = useState('');
   const [toast, setToast] = useState(null);
   const [amenitiesList, setAmenitiesList] = useState([]);
 
@@ -519,16 +523,16 @@ export default function CreateHotel() {
     name: '',
     star: 0,
     description: '',
-    checkin_time_start: '14:00',
-    checkin_time_end: '22:00',
-    checkout_time_start: '06:00',
+    checkin_time_start: '09:00',
+    checkin_time_end: '12:00',
+    checkout_time_start: '09:00',
     checkout_time_end: '12:00',
   });
   const [mediaData, setMediaData] = useState({ amenities: [], images: [], policyFiles: [] });
 
   React.useEffect(() => {
     if (showForm) {
-      fetch('http://localhost:8889/api/amenities')
+      fetch('http://localhost:8889/api/amenities?type=HOTEL')
         .then(res => res.json())
         .then(data => {
           console.log('Amenities response:', data);
@@ -545,6 +549,32 @@ export default function CreateHotel() {
     }
   }, [showForm]);
 
+  React.useEffect(() => {
+    if (editHotel && amenitiesList.length > 0) {
+      setShowForm(true);
+      const parts = editHotel.location ? editHotel.location.split(', ') : ['', '', 'Việt Nam'];
+      setAddressData({
+        district: parts[0] || '',
+        city: parts[1] || '',
+        country: parts[2] || 'Việt Nam'
+      });
+      setHotelData({
+        name: editHotel.name || '',
+        star: editHotel.rating || 0,
+        description: editHotel.description || '',
+        checkin_time_start: editHotel.checkin_time_start || '09:00',
+        checkin_time_end: editHotel.checkin_time_end || '12:00',
+        checkout_time_start: editHotel.checkout_time_start || '09:00',
+        checkout_time_end: editHotel.checkout_time_end || '12:00',
+      });
+      const amIds = (editHotel.amenities || []).map(name => {
+        const found = amenitiesList.find(a => a.name === name);
+        return found ? found.id : null;
+      }).filter(id => id !== null);
+      setMediaData({ amenities: amIds, images: [], policyFiles: [] });
+    }
+  }, [editHotel, amenitiesList]);
+
   const handleAddressChange = (field, value) => setAddressData(prev => ({ ...prev, [field]: value }));
   const handleHotelChange = (field, value) => setHotelData(prev => ({ ...prev, [field]: value }));
   const handleMediaChange = (field, value) => setMediaData(prev => ({ ...prev, [field]: value }));
@@ -555,15 +585,16 @@ export default function CreateHotel() {
     setAddressData({ district: '', city: '', country: 'Việt Nam' });
     setHotelData({
       name: '', star: 0, description: '',
-      checkin_time_start: '14:00',
-      checkin_time_end: '22:00',
-      checkout_time_start: '06:00',
+      checkin_time_start: '09:00',
+      checkin_time_end: '12:00',
+      checkout_time_start: '09:00',
       checkout_time_end: '12:00',
     });
     setMediaData({ amenities: [], images: [], policyFiles: [] });
+    if (onCloseEdit) onCloseEdit();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (createRoomAfter) => {
     const userId = localStorage.getItem('partner_userId');
     setLoading(true);
     try {
@@ -584,15 +615,28 @@ export default function CreateHotel() {
       mediaData.images.forEach(file => formData.append('images', file));
       mediaData.policyFiles.forEach(file => formData.append('policyFiles', file));
 
-      const res = await fetch('http://localhost:8889/api/hotel/create', {
-        method: 'POST',
+      const isEdit = !!editHotel;
+      const url = isEdit 
+        ? `http://localhost:8889/api/hotel/update/${editHotel.id}`
+        : 'http://localhost:8889/api/hotel/create';
+
+      const res = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
         body: formData,
       });
       const data = await res.json();
       if (data.status === 200) {
-        setToast({ type: 'success', msg: 'Tạo chỗ nghỉ thành công!' });
-        if (fetchHotels) fetchHotels();
-        setTimeout(() => { setToast(null); handleClose(); }, 1500);
+        setToast({ type: 'success', msg: isEdit ? 'Cập nhật chỗ nghỉ thành công!' : 'Tạo chỗ nghỉ thành công!' });
+        if (fetchHotels) await fetchHotels();
+        if (setPendingFilter && !isEdit) setPendingFilter('Chờ duyệt');
+        setTimeout(() => { 
+          setToast(null); 
+          handleClose(); 
+          if (createRoomAfter === true && data.data && data.data.id) {
+            setInitialRoomHotelId(data.data.id);
+            setShowRoomForm(true);
+          }
+        }, 1500);
       } else {
         setToast({ type: 'error', msg: data.message || 'Tạo thất bại, vui lòng thử lại.' });
         setTimeout(() => setToast(null), 3000);
@@ -608,15 +652,21 @@ export default function CreateHotel() {
   return (
     <>
       {/* Title row */}
-      <div className="pd-create__row">
-        <div>
-          <h1 className="pd-create__title">Nhóm chỗ nghỉ</h1>
-          <p className="pd-create__subtitle">Quản lý tất cả chỗ nghỉ của bạn trên Booking.com</p>
+      {!editHotel && (
+        <div className="pd-create__row">
+          <div>
+            <h1 className="pd-create__title">Nhóm chỗ nghỉ & Phòng</h1>
+            <p className="pd-create__subtitle">Tất cả chỗ nghỉ và phòng của bạn trên hệ thống</p>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={() => setShowForm(true)} className="pd-create__btn">
+              + Thêm chỗ nghỉ
+            </button>
+          </div>
         </div>
-        <button onClick={() => setShowForm(true)} className="pd-create__btn">
-          + Thêm chỗ nghỉ
-        </button>
-      </div>
+      )}
+
+      {showRoomForm && <CreateRoom onClose={() => { setShowRoomForm(false); setInitialRoomHotelId(''); }} initialHotelId={initialRoomHotelId} />}
 
       {/* Multi-step modal */}
       {showForm && (

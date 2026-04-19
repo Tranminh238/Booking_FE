@@ -47,7 +47,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all">
+        <nav className="font-playfair flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-16 py-2 border-b border-gray-300 bg-white relative transition-all">
             <Link to="/">
                 <img className="h-9" src={logo} alt="Hotel Logo" />
             </Link>
