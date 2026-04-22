@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useHotels } from '../../../api/HotelContext';
-import '../partnerDashboard.css';
-import CreateRoom from './CreateRoom';
-import { getRoomsByHotelId } from '../../../api/roomApi';
+import { useHotels } from '../api/HotelContext';
+import '../pages/PartnerDashboard/partnerDashboard.css';
+import CreateRoom from '../pages/PartnerDashboard/components/CreateRoom';
+import { getRoomsByHotelId } from '../api/roomApi';
 
 const formatVND = (n) =>
   n >= 1000000
@@ -69,7 +69,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
       }
       const ams = Array.isArray(amenData) ? amenData : (amenData?.data || []);
       setAmenitiesList(ams);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { }).finally(() => setLoading(false));
   }, [hotel.id]);
 
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -130,21 +130,14 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
     }
   };
 
-  // ─── Address parser ───
-  const parseAddress = (addr) => {
-    if (!addr) return { district: '', city: '', country: '' };
-    const parts = addr.split(',').map(s => s.trim());
-    return {
-      district: parts[0] || '',
-      city: parts[1] || '',
-      country: parts[2] || '',
-    };
-  };
-
   useEffect(() => {
     if (detail && form && !form.city && !form.district) {
-      const parsed = parseAddress(detail.address);
-      setForm(prev => ({ ...prev, ...parsed }));
+      setForm(prev => ({ 
+        ...prev, 
+        district: detail.district || '',
+        city: detail.city || '',
+        country: detail.country || ''
+      }));
     }
   }, [detail]);
 
@@ -196,7 +189,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                   <label style={labelStyle}>XẾP HẠNG SAO</label>
                   <select style={{ ...inputStyle, appearance: 'auto' }} value={form.star} onChange={e => handleChange('star', e.target.value)}>
                     <option value="">-- Chọn --</option>
-                    {[1,2,3,4,5].map(s => <option key={s} value={s}>{s} sao</option>)}
+                    {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{s} sao</option>)}
                   </select>
                 </div>
               </div>
@@ -206,7 +199,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '10px' }}>📍 ĐỊA CHỈ</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={labelStyle}>Quận/Huyện</label>
+                    <label style={labelStyle}>Địa chỉ</label>
                     <input style={inputStyle} value={form.district} onChange={e => handleChange('district', e.target.value)} placeholder="VD: Quận 1" />
                   </div>
                   <div>
@@ -376,7 +369,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
       }
       const ams = Array.isArray(amenData) ? amenData : (amenData?.data || []);
       setAmenitiesList(ams);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { }).finally(() => setLoading(false));
   }, [room.id]);
 
   const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -609,14 +602,14 @@ function HotelDetailModal({ hotel, onClose }) {
       .then(data => {
         if (data.status === 200) setDetail(data.data);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [hotel.id]);
 
   const statusLabel = (s) =>
     s === 2 ? { text: 'Hoạt động', color: '#16a34a', bg: '#dcfce7' }
-    : s === 1 ? { text: 'Chờ duyệt', color: '#b45309', bg: '#fef3c7' }
-    : { text: 'Đã xóa', color: '#dc2626', bg: '#fee2e2' };
+      : s === 1 ? { text: 'Chờ duyệt', color: '#b45309', bg: '#fef3c7' }
+        : { text: 'Đã xóa', color: '#dc2626', bg: '#fee2e2' };
 
   return (
     <div
@@ -661,9 +654,11 @@ function HotelDetailModal({ hotel, onClose }) {
               {/* Tên + trạng thái */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{detail.name}</h2>
-                {(() => { const s = statusLabel(detail.status); return (
-                  <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.text}</span>
-                );})()}
+                {(() => {
+                  const s = statusLabel(detail.status); return (
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>{s.text}</span>
+                  );
+                })()}
               </div>
 
               {/* Grid thông tin */}

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import PropertyList from './components/PropertyList';
-import StatsGrid from './components/StatsGrid';
-import CreateHotel from './components/CreateHotel';
+import PropertyList from '../../components/PropertyList';
+import BookingList from '../../components/BookingList';
+import StatsGrid from '../PartnerDashboard/components/StatsGrid';
+import CreateHotel from '../PartnerDashboard/components/CreateHotel';
 import { HotelProvider, useHotels } from '../../api/HotelContext';
 import './partnerDashboard.css';
 import PartnerNavbar from '../Partner/Components/PartnerNavbar';
@@ -25,6 +26,7 @@ function DashboardContent() {
                 <PropertyList />
               </>
             } />
+            <Route path="bookings" element={<BookingList />} />
             <Route path="*" element={<div style={{ textAlign: 'center', marginTop: '50px' }}>Tính năng đang được phát triển...</div>} />
           </Routes>
         </div>

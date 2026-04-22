@@ -554,9 +554,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
       setShowForm(true);
       const parts = editHotel.location ? editHotel.location.split(', ') : ['', '', 'Việt Nam'];
       setAddressData({
-        district: parts[0] || '',
-        city: parts[1] || '',
-        country: parts[2] || 'Việt Nam'
+        district: editHotel.district || parts[0] || '',
+        city: editHotel.city || parts[1] || '',
+        country: editHotel.country || parts[2] || 'Việt Nam'
       });
       setHotelData({
         name: editHotel.name || '',
