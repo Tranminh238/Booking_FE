@@ -44,7 +44,7 @@ const HotelCard = ({ hotel }) => {
     };
 
     const handleViewDetail = () => {
-        navigate(`/hotel-detail/${hotel.id}`);
+        navigate(`/hotels/${hotel.id}`);
     };
 
     return (

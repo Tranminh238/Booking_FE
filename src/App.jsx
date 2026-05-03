@@ -10,6 +10,7 @@ import PartnerLogin from './pages/Partner/Components/PartnerLogin';
 import PartnerRegister from './pages/Partner/Components/PartnerRegister';
 import PartnerDashboard from './pages/PartnerDashboard/PartnerDashboard';
 import SearchHotel from './pages/SearchHotel/SearchHotel';
+import DetalHotel from './pages/DetailHotel/DetailHotel';
 
 const App = () => {
 
@@ -32,6 +33,7 @@ const App = () => {
           <Route path='/partner-dashboard/*' element={<PartnerDashboard />} />
           <Route path='/partner' element={<Partner />} />
           <Route path='/hotels' element={<SearchHotel />} />
+          <Route path='/hotels/:id' element={<DetalHotel />} />
         </Routes>
       </div>
     </div>
