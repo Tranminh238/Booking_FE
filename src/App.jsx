@@ -9,6 +9,7 @@ import Partner from './pages/Partner/parter';
 import PartnerLogin from './pages/Partner/Components/PartnerLogin';
 import PartnerRegister from './pages/Partner/Components/PartnerRegister';
 import PartnerDashboard from './pages/PartnerDashboard/PartnerDashboard';
+import SearchHotel from './pages/SearchHotel/SearchHotel';
 
 const App = () => {
 
@@ -30,6 +31,7 @@ const App = () => {
           <Route path='/admin-dashboard/*' element={<Admin />} />
           <Route path='/partner-dashboard/*' element={<PartnerDashboard />} />
           <Route path='/partner' element={<Partner />} />
+          <Route path='/hotels' element={<SearchHotel />} />
         </Routes>
       </div>
     </div>

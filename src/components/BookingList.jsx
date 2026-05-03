@@ -140,12 +140,12 @@ export default function BookingList() {
                     <div style={{ fontWeight: 700, color: '#0369a1', fontSize: '15px', marginBottom: '4px' }}>🏨 {b.hotelName}</div>
                     <div style={{ fontSize: '13px', color: '#4b5563', padding: '2px 8px', background: '#f3f4f6', borderRadius: '4px', display: 'inline-block' }}>🛏️ {b.roomTypeName}</div>
                   </td>
-                  <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                  <td style={{ padding: '10px', verticalAlign: 'top' }}>
                     <div style={{ fontSize: '14px', color: '#111827', marginBottom: '4px' }}>
-                      <span style={{ fontWeight: 600, color: '#16a34a', display: 'inline-block', width: '35px' }}>Vào:</span> {formatDate(b.checkIn)}
+                      <span style={{ fontWeight: 600, display: 'inline-block', width: '80px' }}>Check-in:</span> {formatDate(b.checkIn)}
                     </div>
                     <div style={{ fontSize: '14px', color: '#111827' }}>
-                      <span style={{ fontWeight: 600, color: '#dc2626', display: 'inline-block', width: '35px' }}>Ra:</span> {formatDate(b.checkOut)}
+                      <span style={{ fontWeight: 600, display: 'inline-block', width: '80px' }}>Check-out:</span> {formatDate(b.checkOut)}
                     </div>
                   </td>
                   <td style={{ padding: '16px', verticalAlign: 'top', fontWeight: 700, color: '#003580', fontSize: '16px' }}>
