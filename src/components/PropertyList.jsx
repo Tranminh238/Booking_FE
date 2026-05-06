@@ -1006,7 +1006,7 @@ export default function PropertyList() {
       {/* List */}
       {filtered.length === 0 ? (
         <div className="pd-list__empty">
-          <div className="pd-list__empty-icon">🏨</div>
+          <div className="pd-list__empty-icon"></div>
           <div className="pd-list__empty-text">Không tìm thấy chỗ nghỉ nào</div>
         </div>
       ) : (

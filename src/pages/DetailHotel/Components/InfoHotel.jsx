@@ -261,10 +261,10 @@ export default function InfoHotel({data}) {
                   <div key={i} style={{ marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #eaeaea' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                       <strong style={{ fontSize: '14px' }}>{review.userName || 'Ẩn danh'}</strong>
-                      <span style={{ color: 'var(--gold)', fontSize: '14px', fontWeight: 'bold' }}>{review.rating}/5 ⭐</span>
+                      <span style={{ color: "#4f46e5", fontSize: '14px', fontWeight: 'bold' }}>{review.rating}/10 </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--bark)', lineHeight: '1.4' }}>{review.comment}</p>
-                    <div style={{ fontSize: '11px', color: '#999', marginTop: '5px' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'black', lineHeight: '1.4' }}>{review.comment}</p>
+                    <div style={{ fontSize: '11px', color: 'var(--bark)', marginTop: '5px' }}>
                         {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
                     </div>
                   </div>

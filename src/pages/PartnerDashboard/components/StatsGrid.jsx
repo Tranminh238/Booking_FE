@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHotels } from '../../../api/HotelContext';
 import '../partnerDashboard.css';
-
+import RevenueChart from './RevenueChart';
 const formatVND = (n) =>
   n >= 1000000
     ? (n / 1000000).toFixed(1) + "tr ₫"
@@ -24,18 +24,21 @@ export default function StatsGrid() {
   ];
 
   return (
-    <div className="pd-stats">
-      {stats.map((s) => (
-        <div
-          key={s.label}
-          className="pd-stats__card"
-          style={{ borderLeft: `4px solid ${s.color}` }}
-        >
-          <div className="pd-stats__icon">{s.icon}</div>
-          <div className="pd-stats__value">{s.value}</div>
-          <div className="pd-stats__label">{s.label}</div>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="pd-stats">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="pd-stats__card"
+            style={{ borderLeft: `4px solid ${s.color}` }}
+          >
+            <div className="pd-stats__icon">{s.icon}</div>
+            <div className="pd-stats__value">{s.value}</div>
+            <div className="pd-stats__label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <RevenueChart />
+    </>
   );
 }

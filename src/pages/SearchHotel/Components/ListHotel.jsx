@@ -52,7 +52,7 @@ const HotelCard = ({ hotel }) => {
             {/* Image */}
             <div className="hotel-card-img-wrap">
                 <img
-                    src={mainImage || fallbackImage}
+                    src={mainImage}
                     alt={hotel.name}
                     className="hotel-card-img"
                     onError={e => { e.target.src = fallbackImage; }}

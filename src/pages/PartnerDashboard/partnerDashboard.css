@@ -323,11 +323,12 @@
 
 .pd-form__card {
   background: #fff;
-  border-radius: 20px;
+  border-radius: 10px;
   width: 480px;
-  max-width: 95vw;
+  max-width: 90vw;
+  max-height: 95vh;
+  overflow-y: auto;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
-  overflow: hidden;
   animation: pd-slide-up 0.2s ease;
 }
 
@@ -551,3 +552,36 @@
 .pd-form__btn-secondary:hover {
   background: #e5e7eb;
 }
+
+/* RevenueChart */
+.pd-revenue-chart {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+.pd-revenue-chart__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.pd-revenue-chart__title { font-size: 15px; font-weight: 500; }
+.pd-revenue-chart__select {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  cursor: pointer;
+}
+.pd-revenue-chart__legend {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+.pd-revenue-chart__legend span { display: flex; align-items: center; gap: 5px; }
+.legend-bar { width: 10px; height: 10px; border-radius: 2px; background: #534AB7; display: inline-block; }
+.legend-line { width: 14px; height: 3px; background: #85B7EB; display: inline-block; }

@@ -7,6 +7,7 @@ import { Routes, Route } from "react-router-dom";
 import UserList from "./Components/UserList";
 import BookingList from "../../components/BookingList";
 import '../PartnerDashboard/partnerDashboard.css';
+import StatsGrid from "../PartnerDashboard/components/StatsGrid";
 
 function DashboardAdmin() {
   return (
@@ -16,6 +17,8 @@ function DashboardAdmin() {
         <Sidebar role="admin" />
         <div className="pd-main" style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
           <Routes>
+            <Route path="/" element={<StatsGrid />} />
+            
             <Route path="hotels" element={<PropertyList />} />
             <Route path="users" element={<UserList />} />
             <Route path="bookings" element={<BookingList />} />
