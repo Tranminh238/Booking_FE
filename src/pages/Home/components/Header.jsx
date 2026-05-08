@@ -8,9 +8,19 @@ const Header = () => {
         destination: '',
         checkIn: '',
         checkOut: '',
-        guests: 1
+        adults: 1,
+        children: 0,
+        rooms: 1
     });
+    const [openOptions, setOpenOptions] = useState(false);
     const navigate = useNavigate();
+
+    const handleOption = (name, operation) => {
+        setSearchData(prev => ({
+            ...prev,
+            [name]: operation === "i" ? prev[name] + 1 : prev[name] - 1
+        }));
+    };
 
     useEffect(() => {
         const fetchDestinations = async () => {
@@ -57,7 +67,10 @@ const Header = () => {
         }
         if (searchData.checkIn) params.append('checkIn', searchData.checkIn);
         if (searchData.checkOut) params.append('checkOut', searchData.checkOut);
-        if (searchData.guests > 0) params.append('num_guest', searchData.guests);
+        params.append('adults', searchData.adults);
+        params.append('children', searchData.children);
+        params.append('num_room', searchData.rooms);
+        params.append('num_guest', searchData.adults + searchData.children);
 
         navigate(`/hotels?${params.toString()}`);
     };
@@ -113,9 +126,42 @@ const Header = () => {
                 </div>
 
                 {/* Guests Input */}
-                <div className='flex-[0.5] w-full'>
-                    <label htmlFor="guests" className="block text-sm mb-1.5 font-medium">Số khách</label>
-                    <input min={1} max={10} id="guests" value={searchData.guests} onChange={handleChange} type="number" className="w-full rounded border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-500" />
+                <div className='flex-[0.8] w-full relative'>
+                    <label className="block text-sm mb-1.5 font-medium">Khách và Phòng</label>
+                    <div 
+                        onClick={() => setOpenOptions(!openOptions)} 
+                        className="w-full rounded border border-gray-200 px-3 py-2 mt-1.5 text-sm outline-none focus:border-indigo-500 bg-white cursor-pointer select-none whitespace-nowrap overflow-hidden text-ellipsis"
+                    >
+                        {searchData.adults} Người lớn · {searchData.children} Trẻ em · {searchData.rooms} Phòng
+                    </div>
+                    {openOptions && (
+                        <div className="absolute top-[100%] right-0 mt-2 bg-white text-gray-800 shadow-xl rounded-lg p-4 z-50 w-72 border border-gray-100">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="font-medium">Người lớn</span>
+                                <div className="flex items-center gap-3">
+                                    <button type="button" disabled={searchData.adults <= 1} onClick={() => handleOption("adults", "d")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-50">-</button>
+                                    <span className="w-4 text-center">{searchData.adults}</span>
+                                    <button type="button" onClick={() => handleOption("adults", "i")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">+</button>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="font-medium">Trẻ em</span>
+                                <div className="flex items-center gap-3">
+                                    <button type="button" disabled={searchData.children <= 0} onClick={() => handleOption("children", "d")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-50">-</button>
+                                    <span className="w-4 text-center">{searchData.children}</span>
+                                    <button type="button" onClick={() => handleOption("children", "i")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">+</button>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium">Phòng</span>
+                                <div className="flex items-center gap-3">
+                                    <button type="button" disabled={searchData.rooms <= 1} onClick={() => handleOption("rooms", "d")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-50">-</button>
+                                    <span className="w-4 text-center">{searchData.rooms}</span>
+                                    <button type="button" onClick={() => handleOption("rooms", "i")} className="w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Submit Button */}

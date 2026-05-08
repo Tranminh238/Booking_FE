@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const StarDisplay = ({ star }) => {
     const count = Math.round(star || 0);
@@ -35,6 +35,7 @@ const RatingBadge = ({ rating }) => {
 
 const HotelCard = ({ hotel }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const mainImage = (hotel.images && hotel.images.length > 0) ? hotel.images[0] : null;
     const fallbackImage = `https://picsum.photos/seed/hotel-${hotel.id}/400/260`;
 
@@ -44,7 +45,7 @@ const HotelCard = ({ hotel }) => {
     };
 
     const handleViewDetail = () => {
-        navigate(`/hotels/${hotel.id}`);
+        navigate(`/hotels/${hotel.id}${location.search}`);
     };
 
     return (
@@ -81,7 +82,7 @@ const HotelCard = ({ hotel }) => {
                                 <span className="hotel-card-room-type">{hotel.roomTypeName}</span>
                             )}
                         </div>
-                        {(hotel.city || hotel.district) && (
+                        {(hotel.city || hotel.district || hotel.country) && (
                             <p className="hotel-card-location">
                                 📍 {[hotel.district, hotel.city, hotel.country].filter(Boolean).join(', ')}
                             </p>
@@ -112,8 +113,15 @@ const HotelCard = ({ hotel }) => {
                             {hotel.roomPricePerNight ? (
                                 <>
                                     <span className="hotel-card-price-label">Giá từ</span>
-                                    <span className="hotel-card-price">{formatPrice(hotel.roomPricePerNight)}</span>
-                                    <span className="hotel-card-price-unit">/đêm</span>
+                                    <div className="hotel-card-price-row">
+                                        {hotel.originalRoomPricePerNight > hotel.roomPricePerNight && (
+                                            <span className="hotel-card-price-original" style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '13px', marginRight: '6px' }}>
+                                                {formatPrice(hotel.originalRoomPricePerNight)}
+                                            </span>
+                                        )}
+                                        <span className="hotel-card-price">{formatPrice(hotel.roomPricePerNight)}</span>
+                                        <span className="hotel-card-price-unit">/đêm</span>
+                                    </div>
                                 </>
                             ) : (
                                 <span className="hotel-card-price-na">Liên hệ</span>
@@ -279,6 +287,11 @@ const HotelCard = ({ hotel }) => {
                     font-size: 18px;
                     font-weight: 800;
                     color: #003580;
+                }
+                .hotel-card-price-row{
+                    display: flex;
+                    align-items: baseline;
+                    gap: 4px;
                 }
                 .hotel-card-price-unit {
                     font-size: 11px;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE = 'http://localhost:8889/api';
 const MIN_PRICE = 0;
-const MAX_PRICE = 24000000;
+const MAX_PRICE = 10000000;
 
 const STAR_OPTIONS = [5, 4, 3, 2, 1];
 const SORT_OPTIONS = [

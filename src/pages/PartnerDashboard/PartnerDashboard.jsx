@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import PropertyList from '../../components/PropertyList';
+import PropertyList from '../PartnerDashboard/components/PropertyList';
 import BookingList from '../../components/BookingList';
 import StatsGrid from '../PartnerDashboard/components/StatsGrid';
 import CreateHotel from '../PartnerDashboard/components/CreateHotel';

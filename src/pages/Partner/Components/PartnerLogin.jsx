@@ -27,15 +27,15 @@ const PartnerLogin = () => {
             if (response.ok && data.status === 200) {
                 setToastType("success");
                 setToastMessage("Đăng nhập thành công!");
-                localStorage.setItem("partner_isAuthenticated", "true");
-                localStorage.setItem("partner_userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
+                sessionStorage.setItem("partner_isAuthenticated", "true");
+                sessionStorage.setItem("partner_userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
 
                 // Lưu firstName, lastName từ API trả về
                 if (data.data) {
-                    localStorage.setItem("partner_firstName", data.data.firstName || "");
-                    localStorage.setItem("partner_lastName", data.data.lastName || "");
-                    localStorage.setItem("partner_userId", data.data.userId || "");
-                    localStorage.setItem("partner_role", data.data.role || "");
+                    sessionStorage.setItem("partner_firstName", data.data.firstName || "");
+                    sessionStorage.setItem("partner_lastName", data.data.lastName || "");
+                    sessionStorage.setItem("partner_userId", data.data.userId || "");
+                    sessionStorage.setItem("partner_role", data.data.role || "");
                 }
 
                 setTimeout(() => {

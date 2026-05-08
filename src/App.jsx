@@ -11,6 +11,8 @@ import PartnerRegister from './pages/Partner/Components/PartnerRegister';
 import PartnerDashboard from './pages/PartnerDashboard/PartnerDashboard';
 import SearchHotel from './pages/SearchHotel/SearchHotel';
 import DetalHotel from './pages/DetailHotel/DetailHotel';
+import BookingDetail from './components/BookingDetail';
+import Payment from './components/Payment';
 
 const App = () => {
 
@@ -23,8 +25,8 @@ const App = () => {
     <div>
       {!isOwnerPath && !isPartnerPath && !isAdminPath && <Navbar />}
       <div className='min-h-[70vh]'>
-        <Routes>  
-          <Route path='/' element={<Home />} />   
+        <Routes>
+          <Route path='/' element={<Home />} />
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
           <Route path='/login-partner' element={<Partner />} />
@@ -34,6 +36,8 @@ const App = () => {
           <Route path='/partner' element={<Partner />} />
           <Route path='/hotels' element={<SearchHotel />} />
           <Route path='/hotels/:id' element={<DetalHotel />} />
+          <Route path='/booking' element={<BookingDetail />} />
+          <Route path='/payment' element={<Payment />} />
         </Routes>
       </div>
     </div>

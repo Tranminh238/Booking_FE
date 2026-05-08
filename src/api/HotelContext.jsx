@@ -5,15 +5,15 @@ const HotelContext = createContext();
 export const HotelProvider = ({ children }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // UI States
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState("Trang chủ");
   const [pendingFilter, setPendingFilter] = useState(null); // null | "Hoạt động" | "Chờ duyệt"
 
   const fetchHotels = async () => {
-    const userId = localStorage.getItem("partner_userId");
-    const role = localStorage.getItem("partner_role");
+    const userId = sessionStorage.getItem("partner_userId");
+    const role = sessionStorage.getItem("partner_role");
 
     if (!userId && role !== "ADMIN") {
       setLoading(false);
@@ -35,7 +35,7 @@ export const HotelProvider = ({ children }) => {
         fetch(urlActive),
         fetch(urlDeleted)
       ]);
-      
+
       const dataWait = await resWait.json();
       const dataActive = await resActive.json();
       const dataDeleted = await resDeleted.json();
@@ -56,7 +56,7 @@ export const HotelProvider = ({ children }) => {
           id: h.id,
           name: h.name,
           location: h.address || "Việt Nam",
-          status: h.status === 2 ? "active" : h.status === 1 ? "wait" : "deleted", 
+          status: h.status === 2 ? "active" : h.status === 1 ? "wait" : "deleted",
           rating: h.rating_avg !== null ? parseFloat(h.rating_avg) : null,
           reviews: 0,
           bookings: 0,
@@ -65,8 +65,8 @@ export const HotelProvider = ({ children }) => {
           amenities: h.amenities || [],
           img: h.images && h.images.length > 0 ? h.images[0] : null,
           initials: h.name ? h.name.slice(0, 2).toUpperCase() : "HT"
-      }));
-      
+        }));
+
       setProperties(apiProperties);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách khách sạn:", error);
@@ -126,7 +126,7 @@ export const HotelProvider = ({ children }) => {
   };
 
   return (
-    <HotelContext.Provider value={{ 
+    <HotelContext.Provider value={{
       properties, setProperties, active, wait, deleted, loading, fetchHotels,
       showAddModal, setShowAddModal, activeTab, setActiveTab,
       handleAddProperty, handleDelete, handleApprove,

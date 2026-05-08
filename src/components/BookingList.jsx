@@ -18,8 +18,8 @@ export default function BookingList() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
 
-  const role = localStorage.getItem("partner_role") || localStorage.getItem("role");
-  const userId = localStorage.getItem("partner_userId");
+  const role = sessionStorage.getItem("partner_role") || sessionStorage.getItem("role");
+  const userId = sessionStorage.getItem("partner_userId");
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -43,7 +43,7 @@ export default function BookingList() {
           throw new Error("Lỗi khi tải dữ liệu đặt phòng");
         }
         const data = await res.json();
-        
+
         const parseBookings = (list) => {
           return list.map((item, index) => ({
             id: index, // Tạm thời dùng index vì API List<Object[]> không trả về ID booking

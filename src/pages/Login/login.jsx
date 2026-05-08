@@ -27,13 +27,16 @@ const Login = () => {
             if (response.ok && data.status === 200) {
                 setToastType("success");
                 setToastMessage("Đăng nhập thành công!");
-                localStorage.setItem("isAuthenticated", "true");
-                localStorage.setItem("userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
+                sessionStorage.setItem("isAuthenticated", "true");
+                sessionStorage.setItem("userName", email.split('@')[0]); // Lấy phần trước ký tự @ làm tên hiển thị
 
                 // Lưu firstName, lastName từ API trả về
                 if (data.data) {
-                    localStorage.setItem("firstName", data.data.firstName || "");
-                    localStorage.setItem("lastName", data.data.lastName || "");
+                    sessionStorage.setItem("firstName", data.data.firstName || "");
+                    sessionStorage.setItem("lastName", data.data.lastName || "");
+                    sessionStorage.setItem("email", data.data.email || email);
+                } else {
+                    sessionStorage.setItem("email", email);
                 }
 
                 // Lưu token ở đây nếu cần

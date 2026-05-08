@@ -20,27 +20,27 @@ const PartnerNavbar = () => {
         };
     }, []);
 
-    const isAuthenticated = localStorage.getItem("partner_isAuthenticated") === "true";
-    const role = localStorage.getItem("partner_role"); 
-    const userName = localStorage.getItem("partner_userName");
-    const firstName = localStorage.getItem("partner_firstName") || "";      
-    const lastName = localStorage.getItem("partner_lastName") || "";
-    
-    const displayName = (firstName || lastName) 
-        ? `${firstName} ${lastName}`.trim() 
+    const isAuthenticated = sessionStorage.getItem("partner_isAuthenticated") === "true";
+    const role = sessionStorage.getItem("partner_role");
+    const userName = sessionStorage.getItem("partner_userName");
+    const firstName = sessionStorage.getItem("partner_firstName") || "";
+    const lastName = sessionStorage.getItem("partner_lastName") || "";
+
+    const displayName = (firstName || lastName)
+        ? `${firstName} ${lastName}`.trim()
         : (userName || "Tài khoản");
 
     const handleLogout = () => {
-        localStorage.removeItem("partner_isAuthenticated");
-        localStorage.removeItem("partner_userName");
-        localStorage.removeItem("partner_firstName");
-        localStorage.removeItem("partner_lastName");
-        localStorage.removeItem("partner_role");
-        
+        sessionStorage.removeItem("partner_isAuthenticated");
+        sessionStorage.removeItem("partner_userName");
+        sessionStorage.removeItem("partner_firstName");
+        sessionStorage.removeItem("partner_lastName");
+        sessionStorage.removeItem("partner_role");
+
         setIsProfileMenuOpen(false);
-        
+
         navigate("/partner");
-        window.location.reload(); 
+        window.location.reload();
     };
 
     return (
@@ -51,7 +51,7 @@ const PartnerNavbar = () => {
             <div className="hidden sm:flex items-center gap-8">
                 <Link to="/" className="hidden sm:flex items-center gap-8">
                     Trang Chủ
-                </Link> 
+                </Link>
                 {isAuthenticated ? (
                     <div className="relative" ref={profileMenuRef}>
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
@@ -68,8 +68,8 @@ const PartnerNavbar = () => {
                                         Trang quản lý
                                     </Link>
                                 )}
-                                <button 
-                                    onClick={handleLogout} 
+                                <button
+                                    onClick={handleLogout}
                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                 >
                                     Đăng xuất

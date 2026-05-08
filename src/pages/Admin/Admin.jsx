@@ -1,7 +1,7 @@
 import React from "react";
 import PartnerNavbar from "../Partner/Components/PartnerNavbar";
 import Sidebar from "../../components/Sidebar";
-import PropertyList from "../../components/PropertyList";
+import PropertyList from "../PartnerDashboard/components/PropertyList";
 import { HotelProvider } from "../../api/HotelContext";
 import { Routes, Route } from "react-router-dom";
 import UserList from "./Components/UserList";

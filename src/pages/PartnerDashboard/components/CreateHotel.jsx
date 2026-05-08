@@ -494,7 +494,7 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
           <label style={labelStyle}>🪪 Khách cần xuất trình giấy tờ tùy thân khi nhận phòng?</label>
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
             {[{ value: 'Có', label: '✅ Có', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
-              { value: 'Không', label: '❌ Không', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+            { value: 'Không', label: '❌ Không', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
             ].map(opt => {
               const selected = data.identificationDocuments === opt.value;
               return (
@@ -747,7 +747,7 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
   };
 
   const handleSubmit = async (createRoomAfter) => {
-    const userId = localStorage.getItem('partner_userId');
+    const userId = sessionStorage.getItem('partner_userId');
     setLoading(true);
     try {
       const formData = new FormData();
@@ -772,7 +772,7 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
       mediaData.policyFiles.forEach(file => formData.append('policyFiles', file));
 
       const isEdit = !!editHotel;
-      const url = isEdit  
+      const url = isEdit
         ? `http://localhost:8889/api/hotel/update/${editHotel.id}`
         : 'http://localhost:8889/api/hotel/create';
 
@@ -785,9 +785,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
         setToast({ type: 'success', msg: isEdit ? 'Cập nhật chỗ nghỉ thành công!' : 'Tạo chỗ nghỉ thành công!' });
         if (fetchHotels) await fetchHotels();
         if (setPendingFilter && !isEdit) setPendingFilter('Chờ duyệt');
-        setTimeout(() => {  
-          setToast(null);  
-          handleClose();  
+        setTimeout(() => {
+          setToast(null);
+          handleClose();
           if (createRoomAfter === true && data.data && data.data.id) {
             setInitialRoomHotelId(data.data.id);
             setShowRoomForm(true);

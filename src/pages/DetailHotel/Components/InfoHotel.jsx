@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import "../Detail.css";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 // ── Static data ───────────────────────────────────────────────────────
@@ -100,6 +101,19 @@ function GalleryCell({ bg, emoji, main, more, imgUrl }) {
 
 // ── Main component ────────────────────────────────────────────────────
 export default function InfoHotel({data}) {
+  const [searchParams] = useSearchParams();
+  const paramAdults = searchParams.get('adults');
+  const paramChildren = searchParams.get('children');
+  const paramRooms = searchParams.get('num_room');
+  const paramCheckIn = searchParams.get('checkIn');
+  const paramCheckOut = searchParams.get('checkOut');
+
+  const initialAdults = paramAdults ? parseInt(paramAdults, 10) : 2;
+  const initialChildren = paramChildren ? parseInt(paramChildren, 10) : 0;
+  const initialRooms = paramRooms ? parseInt(paramRooms, 10) : 1;
+  const initialCheckIn = paramCheckIn || "";
+  const initialCheckOut = paramCheckOut || "";
+
   const [liked, setLiked] = useState(false);
   const [reviews, setReviews] = useState([]);
   const totalReview = reviews.length;
@@ -107,14 +121,71 @@ export default function InfoHotel({data}) {
   const [rooms, setRooms] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [amenities, setAmenities] = useState([]);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
-  const [roomCount, setRoomCount] = useState(1);
+  const [promotions, setPromotions] = useState([]);
+  const [checkIn, setCheckIn] = useState(initialCheckIn);
+  const [checkOut, setCheckOut] = useState(initialCheckOut);
+  const [adults, setAdults] = useState(initialAdults);
+  const [children, setChildren] = useState(initialChildren);
+  const [roomCount, setRoomCount] = useState(initialRooms);
   const [showGuestDropdown, setShowGuestDropdown] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [imgIndex, setImgIndex] = useState(0);
+  
+  const [appliedSearch, setAppliedSearch] = useState({
+      adults: initialAdults,
+      children: initialChildren,
+      roomCount: initialRooms,
+      checkIn: initialCheckIn,
+      checkOut: initialCheckOut
+  });
+
+  const navigate = useNavigate();
+
+  const handleBooking = (room) => {
+      if (!appliedSearch.checkIn || !appliedSearch.checkOut) {
+          alert("Vui lòng chọn ngày nhận phòng và ngày trả phòng trước khi đặt phòng.");
+          return;
+      }
+
+      const promo = promotions.find(p => p.roomId === room.id);
+      const pricePerNight = promo ? room.pricePerNight - (room.pricePerNight * promo.discountPercentage / 100) : room.pricePerNight;
+
+      navigate('/booking', { 
+          state: { 
+              hotel: data, 
+              room: room,
+              searchInfo: appliedSearch,
+              numberOfNights: getNumberOfNights(),
+              totalPrice: pricePerNight * appliedSearch.roomCount * getNumberOfNights()
+          }
+      });
+  };
+
+  const handleSearchRooms = () => {
+      if (checkIn && checkOut && new Date(checkIn) >= new Date(checkOut)) {
+          alert("Ngày trả phòng phải sau ngày nhận phòng.");
+          return;
+      }
+      setAppliedSearch({ adults, children, roomCount, checkIn, checkOut });
+  };
+
+  const getNumberOfNights = () => {
+      if (!appliedSearch.checkIn || !appliedSearch.checkOut) return 1;
+      const start = new Date(appliedSearch.checkIn);
+      const end = new Date(appliedSearch.checkOut);
+      const diff = end - start;
+      if (diff > 0) {
+          return Math.ceil(diff / (1000 * 60 * 60 * 24));
+      }
+      return 1;
+  };
+
+  const numberOfNights = getNumberOfNights();
+
+  const filteredRooms = rooms.filter(room => {
+      const requiredCapacity = Math.ceil((appliedSearch.adults + appliedSearch.children) / appliedSearch.roomCount);
+      return room.capacity >= requiredCapacity;
+  });
 
   useEffect(() => {
     if (data?.id) {
@@ -147,6 +218,13 @@ export default function InfoHotel({data}) {
                 if (Array.isArray(resData)) setAmenities(resData);
             })
             .catch(err => console.error("Error fetching amenities", err));
+
+        fetch(`http://localhost:8889/api/promotions/valid`)
+            .then(res => res.json())
+            .then(resData => {
+                if (Array.isArray(resData)) setPromotions(resData);
+            })
+            .catch(err => console.error("Error fetching promotions", err));
     }
   }, [data?.id]);
 
@@ -336,11 +414,11 @@ export default function InfoHotel({data}) {
                    </div>
                 )}
              </div>
-             <button className="hc-search-booking-btn">Tìm</button>
+             <button className="hc-search-booking-btn" onClick={handleSearchRooms}>Tìm</button>
           </div>
 
           <div className="hc-room-list">
-             {rooms.length > 0 ? rooms.map(room => (
+             {filteredRooms.length > 0 ? filteredRooms.map(room => (
                  <div key={room.id} className="hc-room-card-new">
                      <div className="hc-room-title-bar">
                          <h3 style={{fontSize: '20px', fontWeight: 'bold', margin: 0, color: '#333'}}>
@@ -384,15 +462,27 @@ export default function InfoHotel({data}) {
                                              <span>👤 x{room.capacity}</span>
                                          </td>
                                          <td className="hc-room-price-cell">
-                                             {/* <div className="hc-sale-badge">Sale Lễ</div> */}
-                                             <div className="hc-new-price">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.pricePerNight*roomCount)}</div>
+                                             {promotions.find(p => p.roomId === room.id) && (
+                                                 <div className="hc-sale-badge">Giảm {promotions.find(p => p.roomId === room.id).discountPercentage}%</div>
+                                             )}
+                                             {promotions.find(p => p.roomId === room.id) && (
+                                                 <div style={{textDecoration: 'line-through', color: '#999', fontSize: '13px', marginBottom: '2px'}}>
+                                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.pricePerNight * appliedSearch.roomCount * numberOfNights)}
+                                                 </div>
+                                             )}
+                                             <div className="hc-new-price">
+                                                 {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                                                     (promotions.find(p => p.roomId === room.id) ? (room.pricePerNight - (room.pricePerNight * promotions.find(p => p.roomId === room.id).discountPercentage / 100)) : room.pricePerNight) * appliedSearch.roomCount * numberOfNights
+                                                 )}
+                                             </div>
                                              <div className="hc-price-tax">Bao gồm thuế và phí</div>
+                                             {numberOfNights > 1 && <div style={{fontSize: '12px', color: '#666', marginTop: '2px'}}>{numberOfNights} đêm, {appliedSearch.roomCount} phòng</div>}
                                          </td>
                                          <td className="hc-room-qty" style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                                             1
+                                             {appliedSearch.roomCount}
                                          </td>
                                          <td className="hc-room-action" style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                                             <button className="hc-btn-book-room-new">Chọn</button>
+                                             <button className="hc-btn-book-room-new" onClick={() => handleBooking(room)}>Chọn</button>
                                          </td>
                                      </tr>
                                  </tbody>

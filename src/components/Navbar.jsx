@@ -8,42 +8,42 @@ const Navbar = () => {
     const navigate = useNavigate(); // Khởi tạo điều hướng
     const profileMenuRef = useRef(null);
 
-    // Lấy dữ liệu từ localStorage
-    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
-    const role = localStorage.getItem("role"); // Lấy role (ADMIN, PARTNER, v.v.)
-    const userName = localStorage.getItem("userName");
-    const firstName = localStorage.getItem("firstName") || "";
-    const lastName = localStorage.getItem("lastName") || "";
+    // Lấy dữ liệu từ sessionStorage 
+    const isAuthenticated = sessionStorage.getItem("isAuthenticated") === "true";
+    const role = sessionStorage.getItem("role"); // Lấy role (ADMIN, PARTNER, v.v.)
+    const userName = sessionStorage.getItem("userName");
+    const firstName = sessionStorage.getItem("firstName") || "";
+    const lastName = sessionStorage.getItem("lastName") || "";
 
     useEffect(() => {
-            const handleClickOutside = (event) => {
-                if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-                    setIsProfileMenuOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }, []);
-    
-    const displayName = (firstName || lastName) 
-        ? `${firstName} ${lastName}`.trim() 
+        const handleClickOutside = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const displayName = (firstName || lastName)
+        ? `${firstName} ${lastName}`.trim()
         : (userName || "Tài khoản");
 
     const handleLogout = () => {
         // Xóa sạch thông tin đăng nhập
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("userName");
-        localStorage.removeItem("firstName");
-        localStorage.removeItem("lastName");
-        localStorage.removeItem("role"); // Xóa cả role khi đăng xuất
-        
+        sessionStorage.removeItem("isAuthenticated");
+        sessionStorage.removeItem("userName");
+        sessionStorage.removeItem("firstName");
+        sessionStorage.removeItem("lastName");
+        sessionStorage.removeItem("role"); // Xóa cả role khi đăng xuất
+
         setIsProfileMenuOpen(false);
-        
+
         // Chuyển hướng về trang chủ và làm mới trạng thái
         navigate("/");
-        window.location.reload(); 
+        window.location.reload();
     };
 
     return (
@@ -56,7 +56,7 @@ const Navbar = () => {
                 <Link to="/About">Khách sạn</Link>
                 <Link to="/partner">Đăng chỗ nghỉ của bạn</Link>
                 <Link to="/MyBooking">Chỗ Đặt Của Tôi</Link>
-                
+
                 {isAuthenticated ? (
                     <div className="relative" ref={profileMenuRef}>
                         <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
@@ -69,8 +69,8 @@ const Navbar = () => {
                                         Trang Quản Lý
                                     </Link>
                                 }
-                                <button 
-                                    onClick={handleLogout} 
+                                <button
+                                    onClick={handleLogout}
                                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                 >
                                     Đăng xuất

@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useHotels } from '../api/HotelContext';
-import '../pages/PartnerDashboard/partnerDashboard.css';
-import CreateRoom from '../pages/PartnerDashboard/components/CreateRoom';
-import { getRoomsByHotelId } from '../api/roomApi';
+import { useHotels } from '../../../api/HotelContext';
+import '../partnerDashboard.css';
+import CreateRoom from './CreateRoom';
+import { getRoomsByHotelId } from '../../../api/roomApi';
 
 const formatVND = (n) =>
   n >= 1000000
     ? (n / 1000000).toFixed(1) + "tr ₫"
     : n.toLocaleString("vi-VN") + " ₫";
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('vi-VN');
+};
 
 const ROOM_TYPES = [
   { id: 1, name: "Phòng Standard" },
@@ -132,8 +138,8 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
 
   useEffect(() => {
     if (detail && form && !form.city && !form.district) {
-      setForm(prev => ({ 
-        ...prev, 
+      setForm(prev => ({
+        ...prev,
         district: detail.district || '',
         city: detail.city || '',
         country: detail.country || ''
@@ -312,6 +318,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                 <button onClick={onClose} style={{ padding: '10px 24px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
                   Hủy
                 </button>
+
                 <button onClick={handleSave} disabled={saving} style={{ padding: '10px 28px', background: '#003580', color: '#fff', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '14px', opacity: saving ? 0.7 : 1 }}>
                   {saving ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
                 </button>
@@ -334,6 +341,19 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
   const imagesRef = useRef(null);
   const [form, setForm] = useState(null);
 
+  // ── Promotion states ──
+  const [promotions, setPromotions] = useState([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [promoSaving, setPromoSaving] = useState(false);
+  const [promoForm, setPromoForm] = useState({
+    discountPercentage: '',
+    quantityRoom: '',
+    startDate: '',
+    endDate: '',
+  });
+
+  // ── Fetch room detail + amenities ──
   useEffect(() => {
     Promise.all([
       fetch(`http://localhost:8889/api/room/detail/${room.id}`).then(r => r.json()),
@@ -350,11 +370,10 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
           capacity: d.capacity || '',
           status: d.status !== undefined ? String(d.status) : '1',
           description: d.description || '',
-          amenityIds: d.amenity_ids || [],
+          amenityIds: d.amenityIds || [],
           newImages: [],
         });
       } else {
-        // fallback from list data
         setForm({
           roomTypeId: room.roomTypeId || '',
           quantity: room.quantity || '',
@@ -372,25 +391,43 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     }).catch(() => { }).finally(() => setLoading(false));
   }, [room.id]);
 
-  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  // ── Fetch promotions ──
+  const fetchPromotions = () => {
+    setPromoLoading(true);
+    fetch(`http://localhost:8889/api/promotions/room/${room.id}`)
+      .then(r => r.json())
+      .then(data => setPromotions(Array.isArray(data) ? data : (data?.data || [])))
+      .catch(() => setPromotions([]))
+      .finally(() => setPromoLoading(false));
+  };
 
+  useEffect(() => { fetchPromotions(); }, [room.id]);
+
+  // ── Room form handlers ──
+  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
   const handleAmenityToggle = (id) => {
     setForm(prev => ({
       ...prev,
-      amenityIds: prev.amenityIds.includes(id) ? prev.amenityIds.filter(a => a !== id) : [...prev.amenityIds, id],
+      amenityIds: prev.amenityIds.includes(id)
+        ? prev.amenityIds.filter(a => a !== id)
+        : [...prev.amenityIds, id],
     }));
   };
-
   const handleImageAdd = (e) => {
     const files = Array.from(e.target.files);
     setForm(prev => ({ ...prev, newImages: [...prev.newImages, ...files] }));
   };
-
   const removeNewImage = (idx) => setForm(prev => ({ ...prev, newImages: prev.newImages.filter((_, i) => i !== idx) }));
 
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Save room ──
   const handleSave = async () => {
-    if (!form.roomTypeId) { setToast({ type: 'error', msg: 'Vui lòng chọn loại phòng!' }); setTimeout(() => setToast(null), 3000); return; }
-    if (!form.pricePerNight || Number(form.pricePerNight) <= 0) { setToast({ type: 'error', msg: 'Giá phải lớn hơn 0!' }); setTimeout(() => setToast(null), 3000); return; }
+    if (!form.roomTypeId) { showToast('error', 'Vui lòng chọn loại phòng!'); return; }
+    if (!form.pricePerNight || Number(form.pricePerNight) <= 0) { showToast('error', 'Giá phải lớn hơn 0!'); return; }
     setSaving(true);
     try {
       const payload = new FormData();
@@ -405,26 +442,80 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
       form.amenityIds.forEach(id => payload.append('amenityIds', id));
       form.newImages.forEach(f => payload.append('images', f));
 
-      const res = await fetch(`http://localhost:8889/api/room/update/${room.id}`, {
-        method: 'PUT',
-        body: payload,
-      });
+      const res = await fetch(`http://localhost:8889/api/room/update/${room.id}`, { method: 'PUT', body: payload });
       const data = await res.json();
       if (data.status === 200 || res.ok) {
-        setToast({ type: 'success', msg: 'Cập nhật phòng thành công!' });
-        setTimeout(() => { setToast(null); onSuccess(); onClose(); }, 1500);
+        showToast('success', 'Cập nhật phòng thành công!');
+        setTimeout(() => { onSuccess(); onClose(); }, 1500);
       } else {
-        setToast({ type: 'error', msg: data.message || 'Cập nhật thất bại!' });
-        setTimeout(() => setToast(null), 3000);
+        showToast('error', data.message || 'Cập nhật thất bại!');
       }
     } catch {
-      setToast({ type: 'error', msg: 'Không thể kết nối server!' });
-      setTimeout(() => setToast(null), 3000);
+      showToast('error', 'Không thể kết nối server!');
     } finally {
       setSaving(false);
     }
   };
 
+  // ── Promotion handlers ──
+  const handlePromoChange = (field, value) =>
+    setPromoForm(prev => ({ ...prev, [field]: value }));
+
+  const handleAddPromotion = async () => {
+    const { discountPercentage, quantityRoom, startDate, endDate } = promoForm;
+    if (!discountPercentage || !quantityRoom || !startDate || !endDate) {
+      showToast('error', 'Vui lòng điền đầy đủ thông tin khuyến mãi!'); return;
+    }
+    if (Number(discountPercentage) <= 1 || Number(discountPercentage) > 100) {
+      showToast('error', 'Giảm giá phải từ 2% đến 100%!'); return;
+    }
+    if (new Date(startDate) >= new Date(endDate)) {
+      showToast('error', 'Ngày bắt đầu phải trước ngày kết thúc!'); return;
+    }
+    if (new Date(startDate) <= new Date()) {
+      showToast('error', 'Ngày bắt đầu phải trong tương lai!'); return;
+    }
+    setPromoSaving(true);
+    try {
+      const res = await fetch('http://localhost:8889/api/promotions/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: room.id,
+          discountPercentage: Number(discountPercentage),
+          quantityRoom: Number(quantityRoom),
+          startDate: new Date(startDate).toISOString(),
+          endDate: new Date(endDate).toISOString(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok || data.status === 200) {
+        showToast('success', 'Thêm khuyến mãi thành công!');
+        setPromoForm({ discountPercentage: '', quantityRoom: '', startDate: '', endDate: '' });
+        setShowPromoForm(false);
+        fetchPromotions();
+      } else {
+        showToast('error', data.message || 'Thêm khuyến mãi thất bại!');
+      }
+    } catch {
+      showToast('error', 'Không thể kết nối server!');
+    } finally {
+      setPromoSaving(false);
+    }
+  };
+
+  const handleDeletePromotion = async (promoId) => {
+    if (!window.confirm('Bạn có chắc muốn xóa khuyến mãi này?')) return;
+    try {
+      const res = await fetch(`http://localhost:8889/api/promotions/delete/${promoId}`, { method: 'DELETE' });
+      if (res.ok) { showToast('success', 'Đã xóa khuyến mãi!'); fetchPromotions(); }
+      else showToast('error', 'Xóa thất bại!');
+    } catch {
+      showToast('error', 'Không thể kết nối server!');
+    }
+  };
+
+  // ── Styles ──
   const inputStyle = {
     width: '100%', padding: '9px 12px', borderRadius: '8px',
     border: '1px solid #d1d5db', fontSize: '14px', color: '#111827',
@@ -433,6 +524,18 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
   const labelStyle = { fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px', display: 'block' };
 
   const roomTypeName = ROOM_TYPES.find(rt => rt.id === Number(room.roomTypeId))?.name || `Loại ${room.roomTypeId}`;
+
+  // ── Promotion status helper ──
+  const getPromoStatus = (promo) => {
+    const now = new Date();
+    const start = new Date(promo.startDate);
+    const end = new Date(promo.endDate);
+    if (promo.status === 2) return { label: 'Đã xóa', bg: '#f3f4f6', color: '#9ca3af' };
+    if (now < start) return { label: 'Sắp diễn ra', bg: '#fef3c7', color: '#b45309' };
+    if (now > end) return { label: 'Hết hạn', bg: '#fee2e2', color: '#dc2626' };
+    if (promo.quantityUsed >= promo.quantityRoom) return { label: 'Hết lượt', bg: '#fee2e2', color: '#dc2626' };
+    return { label: 'Đang chạy', bg: '#dcfce7', color: '#16a34a' };
+  };
 
   return (
     <div
@@ -443,11 +546,12 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: '14px', width: '640px', maxWidth: '96vw',
-          maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          background: '#fff', borderRadius: '14px', width: '720px', maxWidth: '96vw',
+          maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
         }}
       >
-        <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Header */}
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>✏️ Chỉnh sửa phòng</h2>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#6b7280' }}>{roomTypeName}</p>
@@ -462,6 +566,11 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
             <p style={{ textAlign: 'center', color: '#dc2626' }}>Không thể tải thông tin phòng.</p>
           ) : (
             <>
+              {/* ════ THÔNG TIN PHÒNG ════ */}
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#003580', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                🛏️ Thông tin phòng
+              </div>
+
               {/* Loại phòng */}
               <div style={{ marginBottom: '14px' }}>
                 <label style={labelStyle}>LOẠI PHÒNG *</label>
@@ -503,12 +612,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
               {/* Mô tả */}
               <div style={{ marginBottom: '14px' }}>
                 <label style={labelStyle}>MÔ TẢ</label>
-                <textarea
-                  style={{ ...inputStyle, height: '80px', resize: 'vertical' }}
-                  value={form.description}
-                  onChange={e => handleChange('description', e.target.value)}
-                  placeholder="Mô tả về phòng..."
-                />
+                <textarea style={{ ...inputStyle, height: '80px', resize: 'vertical' }} value={form.description} onChange={e => handleChange('description', e.target.value)} placeholder="Mô tả về phòng..." />
               </div>
 
               {/* Tiện nghi */}
@@ -519,20 +623,12 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                     {amenitiesList.map(a => {
                       const selected = form.amenityIds.includes(a.id);
                       return (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => handleAmenityToggle(a.id)}
-                          style={{
-                            padding: '4px 12px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', fontWeight: 500,
-                            border: selected ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                            background: selected ? '#eff6ff' : '#f9fafb',
-                            color: selected ? '#1d4ed8' : '#374151',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          {a.name}
-                        </button>
+                        <button key={a.id} type="button" onClick={() => handleAmenityToggle(a.id)} style={{
+                          padding: '4px 12px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', fontWeight: 500,
+                          border: selected ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                          background: selected ? '#eff6ff' : '#f9fafb',
+                          color: selected ? '#1d4ed8' : '#374151', transition: 'all 0.15s',
+                        }}>{a.name}</button>
                       );
                     })}
                   </div>
@@ -540,11 +636,11 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
               )}
 
               {/* Ảnh hiện tại */}
-              {detail?.images?.length > 0 && (
+              {detail?.imageUrls?.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
                   <label style={labelStyle}>ẢNH HIỆN TẠI</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {detail.images.map((img, i) => (
+                    {detail.imageUrls.map((img, i) => (
                       <img key={i} src={img} alt="" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                     ))}
                   </div>
@@ -552,36 +648,143 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
               )}
 
               {/* Thêm ảnh mới */}
-              <div style={{ marginBottom: '14px' }}>
+              <div style={{ marginBottom: '20px' }}>
                 <label style={labelStyle}>THÊM ẢNH MỚI</label>
                 <input ref={imagesRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={handleImageAdd} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <div
-                    onClick={() => imagesRef.current?.click()}
-                    style={{
-                      width: '80px', height: '60px', border: '2px dashed #93c5fd', borderRadius: '8px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', background: '#f0f7ff', color: '#3b82f6', fontSize: '22px', fontWeight: 'bold',
-                    }}
-                  >+</div>
+                  <div onClick={() => imagesRef.current?.click()} style={{ width: '80px', height: '60px', border: '2px dashed #93c5fd', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#f0f7ff', color: '#3b82f6', fontSize: '22px', fontWeight: 'bold' }}>+</div>
                   {form.newImages.map((f, i) => (
                     <div key={i} style={{ position: 'relative', width: '80px', height: '60px' }}>
                       <img src={URL.createObjectURL(f)} alt="preview" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
-                      <button
-                        type="button" onClick={() => removeNewImage(i)}
-                        style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >×</button>
+                      <button type="button" onClick={() => removeNewImage(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+              {/* Save room actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingBottom: '20px', borderBottom: '2px solid #f3f4f6' }}>
                 <button onClick={onClose} style={{ padding: '9px 22px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Hủy</button>
                 <button onClick={handleSave} disabled={saving} style={{ padding: '9px 26px', background: '#003580', color: '#fff', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
                   {saving ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
                 </button>
+              </div>
+
+              {/* ════ KHUYẾN MÃI ════ */}
+              <div style={{ marginTop: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#003580', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    🏷️ Khuyến mãi ({promotions.filter(p => p.status !== 2).length})
+                  </div>
+                  <button
+                    onClick={() => setShowPromoForm(v => !v)}
+                    style={{ padding: '6px 14px', background: showPromoForm ? '#f3f4f6' : '#003580', color: showPromoForm ? '#374151' : '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    {showPromoForm ? '✕ Hủy' : '+ Thêm khuyến mãi'}
+                  </button>
+                </div>
+
+                {/* Form thêm khuyến mãi */}
+                {showPromoForm && (
+                  <div style={{ background: '#f0f7ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '16px', marginBottom: '14px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0369a1', marginBottom: '12px' }}>📝 Thêm khuyến mãi mới</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                      <div>
+                        <label style={labelStyle}>GIẢM GIÁ (%)</label>
+                        <input
+                          type="number" min="2" max="100"
+                          style={inputStyle}
+                          value={promoForm.discountPercentage}
+                          onChange={e => handlePromoChange('discountPercentage', e.target.value)}
+                          placeholder="VD: 20"
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>SỐ LƯỢNG PHÒNG ÁP DỤNG</label>
+                        <input
+                          type="number" min="1"
+                          style={inputStyle}
+                          value={promoForm.quantityRoom}
+                          onChange={e => handlePromoChange('quantityRoom', e.target.value)}
+                          placeholder="VD: 10"
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>NGÀY BẮT ĐẦU</label>
+                        <input
+                          type="date"
+                          style={inputStyle}
+                          value={promoForm.startDate}
+                          onChange={e => handlePromoChange('startDate', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>NGÀY KẾT THÚC</label>
+                        <input
+                          type="date"
+                          style={inputStyle}
+                          value={promoForm.endDate}
+                          onChange={e => handlePromoChange('endDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={handleAddPromotion}
+                        disabled={promoSaving}
+                        style={{ padding: '8px 22px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: '8px', cursor: promoSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '13px', opacity: promoSaving ? 0.7 : 1 }}
+                      >
+                        {promoSaving ? '⏳ Đang lưu...' : '✅ Xác nhận thêm'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Danh sách khuyến mãi */}
+                {promoLoading ? (
+                  <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>⏳ Đang tải khuyến mãi...</p>
+                ) : promotions.filter(p => p.status !== 2).length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: '14px' }}>
+                    <div style={{ fontSize: '28px', marginBottom: '6px' }}>🏷️</div>
+                    Chưa có khuyến mãi nào
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {promotions.filter(p => p.status !== 2).map(promo => {
+                      const st = getPromoStatus(promo);
+                      return (
+                        <div key={promo.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px 14px', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                            {/* Badge giảm giá */}
+                            <div style={{ background: '#003580', color: '#fff', borderRadius: '8px', padding: '6px 12px', textAlign: 'center', flexShrink: 0 }}>
+                              <div style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1 }}>{promo.discountPercentage}%</div>
+                              <div style={{ fontSize: '10px', fontWeight: 500, opacity: 0.85 }}>GIẢM</div>
+                            </div>
+                            {/* Chi tiết */}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: st.bg, color: st.color }}>{st.label}</span>
+                                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                                  {promo.quantityUsed}/{promo.quantityRoom} lượt dùng
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                📅{formatDateTime(promo.startDate)} → {formatDateTime(promo.endDate)}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Nút xóa */}
+                          <button
+                            onClick={() => handleDeletePromotion(promo.id)}
+                            style={{ padding: '5px 12px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -590,11 +793,11 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     </div>
   );
 }
-
 /* ─────────────────────────── Hotel Detail Modal ─────────────────────────── */
 function HotelDetailModal({ hotel, onClose }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     fetch(`http://localhost:8889/api/hotel/gethoteldetail/${hotel.id}`)
@@ -724,6 +927,7 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editRoom, setEditRoom] = useState(null);
+  const [detailRoom, setDetailRoom] = useState(null);
 
   const fetchRooms = () => {
     setLoading(true);
@@ -741,13 +945,17 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
   }, [hotel.id]);
 
   const handleDeleteRoom = async (roomId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa phòng này?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa phòng này?')) return false;
     try {
       const res = await fetch(`http://localhost:8889/api/room/delete/${roomId}`, { method: 'DELETE' });
-      if (res.ok) fetchRooms();
+      if (res.ok) {
+        fetchRooms();
+        return true;
+      }
     } catch (e) {
       console.error(e);
     }
+    return false;
   };
 
   return (
@@ -803,24 +1011,24 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
                           {r.status === 1 ? 'Hoạt động' : 'Bảo trì'}
                         </span>
                       </td>
-                      {role === 'PARTNER' && (
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          {role === 'PARTNER' && (
                             <button
                               onClick={() => setEditRoom(r)}
                               style={{ padding: '5px 14px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                             >
                               Sửa
                             </button>
-                            <button
-                              onClick={() => handleDeleteRoom(r.id)}
-                              style={{ padding: '5px 14px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                            >
-                              Xóa
-                            </button>
-                          </div>
-                        </td>
-                      )}
+                          )}
+                          <button
+                            onClick={() => setDetailRoom(r)}
+                            style={{ padding: '5px 16px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                          >
+                            Chi tiết
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -848,9 +1056,145 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
           hotelId={hotel.id}
           onClose={() => setEditRoom(null)}
           onSuccess={fetchRooms}
+          onDelete={handleDeleteRoom}
+        />
+      )}
+
+      {/* Room Detail Modal */}
+      {detailRoom && (
+        <RoomDetailModal
+          room={detailRoom}
+          hotelId={hotel.id}
+          role={role}
+          onClose={() => setDetailRoom(null)}
+          onEdit={(r) => setEditRoom(r)}
+          onDelete={handleDeleteRoom}
         />
       )}
     </>
+  );
+}
+
+/* ─────────────────────────── Room Detail Modal ─────────────────────────── */
+function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [amenitiesList, setAmenitiesList] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`http://localhost:8889/api/room/detail/${room.id}`).then(r => r.json()),
+      fetch('http://localhost:8889/api/amenities?type=ROOM').then(r => r.json()),
+    ]).then(([roomData, amenData]) => {
+      if (roomData.status === 200) setDetail(roomData.data);
+      setAmenitiesList(Array.isArray(amenData) ? amenData : (amenData?.data || []));
+    }).catch(() => { }).finally(() => setLoading(false));
+  }, [room.id]);
+
+  const roomTypeMap = { 1: 'Standard', 2: 'Deluxe', 3: 'Suite', 4: 'Single', 5: 'Double' };
+  const rTypeName = roomTypeMap[room.roomTypeId] || `Loại ${room.roomTypeId}`;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: '16px', width: '680px', maxWidth: '96vw', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.22)' }}
+      >
+        {/* Header ảnh */}
+        <div style={{ position: 'relative', height: '180px', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: '#e5e7eb' }}>
+          {detail?.imageUrls?.[0] ? (
+            <img src={detail.imageUrls[0]} alt={rTypeName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '56px', color: '#9ca3af' }}>🛏️</div>
+          )}
+          <button
+            onClick={onClose}
+            style={{ position: 'absolute', top: '12px', right: '14px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >×</button>
+        </div>
+
+        <div style={{ padding: '24px' }}>
+          {/* Tên + trạng thái */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', gap: '12px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', margin: 0 }}>Phòng {rTypeName}</h2>
+            <span style={{
+              padding: '4px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap',
+              background: room.status === 1 ? '#dcfce7' : '#fef3c7',
+              color: room.status === 1 ? '#16a34a' : '#b45309',
+            }}>
+              {room.status === 1 ? 'Hoạt động' : 'Bảo trì'}
+            </span>
+          </div>
+
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#6b7280', padding: '24px 0' }}>⏳ Đang tải chi tiết...</p>
+          ) : (
+            <>
+              {/* Thông tin chính */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+                {[
+                  { icon: '🛏️', label: 'Loại phòng', value: rTypeName },
+                  { icon: '💰', label: 'Giá mỗi đêm', value: formatVND(room.pricePerNight) },
+                  { icon: '👥', label: 'Sức chứa', value: `${room.capacity} người` },
+                  { icon: '📦', label: 'Số lượng phòng', value: `${room.quantity} phòng` },
+                  { icon: '📐', label: 'Diện tích', value: room.area ? `${room.area} m²` : '—' },
+                ].map(({ icon, label, value }) => (
+                  <div key={label} style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', border: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '2px' }}>{icon} {label}</div>
+                    <div style={{ fontSize: '14px', color: '#111827', fontWeight: 600 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mô tả */}
+              {(detail?.description || room.description) && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '6px' }}>MÔ TẢ</div>
+                  <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', margin: 0 }}>{detail?.description || room.description}</p>
+                </div>
+              )}
+
+              {/* Tiện nghi */}
+              {detail?.amenityIds?.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '8px' }}>TIỆN NGHI</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {detail.amenityIds.map((aId, i) => {
+                      const amen = amenitiesList.find(a => a.id === aId);
+                      return amen ? (
+                        <span key={i} style={{ background: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>{amen.name}</span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Gallery ảnh */}
+              {detail?.imageUrls?.length > 1 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', marginBottom: '8px' }}>THƯ VIỆN ẢNH</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {detail.imageUrls.slice(1).map((img, i) => (
+                      <img key={i} src={img} alt="" style={{ width: '90px', height: '65px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px', borderTop: '1px solid #f3f4f6', paddingTop: '16px' }}>
+            <button onClick={onClose} style={{ padding: '9px 22px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -955,7 +1299,7 @@ export default function PropertyList() {
   const [addRoomForHotelId, setAddRoomForHotelId] = useState(null);
   const [detailHotel, setDetailHotel] = useState(null);
   const [editHotel, setEditHotel] = useState(null);
-  const role = localStorage.getItem("partner_role");
+  const role = sessionStorage.getItem("partner_role");
 
   useEffect(() => {
     if (pendingFilter) {
@@ -1053,6 +1397,7 @@ export default function PropertyList() {
           role={role}
         />
       )}
+
 
       {/* Add Room Modal */}
       {addRoomForHotelId && (

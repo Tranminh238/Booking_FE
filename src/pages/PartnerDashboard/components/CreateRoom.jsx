@@ -137,19 +137,6 @@ function StepPriceDocs({ data, onChange, onBack, onNext }) {
           />
           {errors.capacity && <span className="pd-form__error">{errors.capacity}</span>}
         </div>
-
-        <div className="pd-form__field">
-          <label className="pd-form__label">Trạng thái *</label>
-          <select
-            className="pd-form__input"
-            value={data.status}
-            onChange={e => onChange('status', e.target.value)}
-            style={{ appearance: 'auto' }}
-          >
-            <option value="1">Hoạt động</option>
-            <option value="0">Bảo trì</option>
-          </select>
-        </div>
       </div>
 
       <div className="pd-form__field">

@@ -17,13 +17,18 @@ const SearchHotel = () => {
     const checkInParam = searchParams.get('checkIn') || '';
     const checkOutParam = searchParams.get('checkOut') || '';
     const numGuest = searchParams.get('num_guest') || '';
+    const numRoom = searchParams.get('num_room') || '';
+    const adultsParam = searchParams.get('adults') || 1;
+    const childrenParam = searchParams.get('children') || 0;
 
     // Search bar state (mirrors the header)
     const [searchBarState, setSearchBarState] = useState({
         destination: keyword,
         checkIn: checkInParam,
         checkOut: checkOutParam,
-        guests: numGuest || 1,
+        adults: parseInt(adultsParam, 10),
+        children: parseInt(childrenParam, 10),
+        rooms: parseInt(numRoom || 1, 10),
     });
 
     // Filter state
@@ -49,13 +54,15 @@ const SearchHotel = () => {
             page: pg,
             size: PAGE_SIZE,
         };
-        // From URL (header search) – search by city only, not hotel name
+        // From URL (header search) – search by city or hotel name
         if (searchBarState.destination) {
             body.city = searchBarState.destination;
+            body.name = searchBarState.destination;
         }
         if (searchBarState.checkIn) body.checkInDate = searchBarState.checkIn;
         if (searchBarState.checkOut) body.checkOutDate = searchBarState.checkOut;
-        if (searchBarState.guests && +searchBarState.guests > 0) body.num_guest = +searchBarState.guests;
+        if (searchBarState.adults + searchBarState.children > 0) body.num_guest = searchBarState.adults + searchBarState.children;
+        if (searchBarState.rooms > 0) body.num_room = searchBarState.rooms;
 
         // From filter sidebar
         if (filters.star) body.star = filters.star;
@@ -104,9 +111,11 @@ const SearchHotel = () => {
             destination: keyword,
             checkIn: checkInParam,
             checkOut: checkOutParam,
-            guests: numGuest || 1,
+            adults: parseInt(adultsParam, 10) || 1,
+            children: parseInt(childrenParam, 10) || 0,
+            rooms: parseInt(numRoom, 10) || 1,
         });
-    }, [keyword, checkInParam, checkOutParam, numGuest]);
+    }, [keyword, checkInParam, checkOutParam, adultsParam, childrenParam, numRoom]);
 
     // Fetch when searchBar or filters change
     useEffect(() => {
@@ -127,7 +136,10 @@ const SearchHotel = () => {
         if (searchBarState.destination) params.append('keyword', searchBarState.destination);
         if (searchBarState.checkIn) params.append('checkIn', searchBarState.checkIn);
         if (searchBarState.checkOut) params.append('checkOut', searchBarState.checkOut);
-        if (searchBarState.guests > 0) params.append('num_guest', searchBarState.guests);
+        if (searchBarState.adults > 0) params.append('adults', searchBarState.adults);
+        if (searchBarState.children > 0) params.append('children', searchBarState.children);
+        if (searchBarState.rooms > 0) params.append('num_room', searchBarState.rooms);
+        if (searchBarState.adults + searchBarState.children > 0) params.append('num_guest', searchBarState.adults + searchBarState.children);
         setSearchParams(params);
         fetchHotels(0);
     };
