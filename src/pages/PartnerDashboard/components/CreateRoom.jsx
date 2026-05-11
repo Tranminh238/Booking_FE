@@ -2,15 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useHotels } from '../../../api/HotelContext';
 import '../partnerDashboard.css';
 
-const ROOM_TYPES = [
-  { id: 1, name: "Phòng Standard" },
-  { id: 2, name: "Phòng Deluxe" },
-  { id: 3, name: "Phòng Suite" },
-  { id: 4, name: "Phòng Single" },
-  { id: 5, name: "Phòng Double" },
-];
-
-function StepBasicInfo({ data, onChange, onNext, properties }) {
+function StepBasicInfo({ data, onChange, onNext, properties, roomTypes }) {
   const [errors, setErrors] = useState({});
 
   const validate = () => {
@@ -44,7 +36,7 @@ function StepBasicInfo({ data, onChange, onNext, properties }) {
           style={{ appearance: 'auto' }}
         >
           <option value="">-- Chọn loại phòng --</option>
-          {ROOM_TYPES.map(rt => (
+          {roomTypes.map(rt => (
             <option key={rt.id} value={rt.id}>{rt.name}</option>
           ))}
         </select>
@@ -369,6 +361,7 @@ export default function CreateRoom({ onClose, initialHotelId }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [amenitiesList, setAmenitiesList] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
 
   const defaultHotelId = initialHotelId || (properties.length > 0 ? properties[0].id : '');
 
@@ -394,6 +387,15 @@ export default function CreateRoom({ onClose, initialHotelId }) {
         else setAmenitiesList([]);
       })
       .catch(err => console.error("Lỗi lấy amenities:", err));
+
+    fetch('http://localhost:8889/api/room-types/get-all')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRoomTypes(data);
+        else if (data && Array.isArray(data.data)) setRoomTypes(data.data);
+        else setRoomTypes([]);
+      })
+      .catch(err => console.error("Lỗi lấy room types:", err));
   }, []);
 
   const handleChange = (field, value) => {
@@ -467,6 +469,7 @@ export default function CreateRoom({ onClose, initialHotelId }) {
             onChange={handleChange}
             onNext={() => setStep(2)}
             properties={properties}
+            roomTypes={roomTypes}
           />
         ) : step === 2 ? (
           <StepPriceDocs

@@ -261,13 +261,18 @@ const Payment = () => {
         e.preventDefault();
         setIsSubmitting(true);
 
-        const userStr = sessionStorage.getItem('user');
-        const userObj = userStr ? JSON.parse(userStr) : null;
-        // In the updated Login.jsx, 'user' is not saved, so userObj will likely be null.
-        // We will just use null for userId for now if it's not present, unless the backend requires it.
+        const userId = sessionStorage.getItem('userId') || null;
+
+        // 🔍 DEBUG: Kiểm tra userId trước khi gửi request
+        console.log('=== BOOKING DEBUG ===');
+        console.log('sessionStorage userId:', sessionStorage.getItem('userId'));
+        console.log('sessionStorage isAuthenticated:', sessionStorage.getItem('isAuthenticated'));
+        console.log('sessionStorage role:', sessionStorage.getItem('role'));
+        console.log('userId to send:', userId);
+        console.log('====================');
 
         const bookingRequest = {
-            userId: userObj ? userObj.id : null,
+            userId: userId ? Number(userId) : null,
             roomId: room.id,
             hotelId: hotel.id,
             checkInDate: searchInfo.checkIn,
@@ -283,6 +288,8 @@ const Payment = () => {
             contactPhone: bookingFormData.contactPhone,
             contactEmail: bookingFormData.contactEmail,
         };
+
+        console.log('bookingRequest:', JSON.stringify(bookingRequest));
 
         try {
             const response = await fetch('http://localhost:8889/api/booking/create', {

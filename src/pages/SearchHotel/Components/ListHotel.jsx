@@ -103,7 +103,7 @@ const HotelCard = ({ hotel }) => {
                     <div className="hotel-card-right">
                         <div className="hotel-card-rating-wrap">
                             <RatingBadge rating={hotel.rating_avg} />
-                            {hotel.rating_avg && (
+                            {hotel.rating_avg > 0 && (
                                 <span className="hotel-card-rating-label">
                                     {hotel.rating_avg >= 9 ? 'Xuất sắc' : hotel.rating_avg >= 8 ? 'Rất tốt' : hotel.rating_avg >= 7 ? 'Tốt' : 'Trung bình'}
                                 </span>
@@ -112,13 +112,12 @@ const HotelCard = ({ hotel }) => {
                         <div className="hotel-card-price-wrap">
                             {hotel.roomPricePerNight ? (
                                 <>
-                                    <span className="hotel-card-price-label">Giá từ</span>
+                                    {hotel.originalRoomPricePerNight > hotel.roomPricePerNight && (
+                                        <span className="hotel-card-price-original" style={{ textDecoration: 'line-through', color: 'red', fontSize: '14px', marginRight: '6px' }}>
+                                            {formatPrice(hotel.originalRoomPricePerNight)}
+                                        </span>
+                                    )}
                                     <div className="hotel-card-price-row">
-                                        {hotel.originalRoomPricePerNight > hotel.roomPricePerNight && (
-                                            <span className="hotel-card-price-original" style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '13px', marginRight: '6px' }}>
-                                                {formatPrice(hotel.originalRoomPricePerNight)}
-                                            </span>
-                                        )}
                                         <span className="hotel-card-price">{formatPrice(hotel.roomPricePerNight)}</span>
                                         <span className="hotel-card-price-unit">/đêm</span>
                                     </div>

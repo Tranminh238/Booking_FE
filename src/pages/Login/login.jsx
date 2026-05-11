@@ -32,9 +32,16 @@ const Login = () => {
 
                 // Lưu firstName, lastName từ API trả về
                 if (data.data) {
+                    console.log('=== LOGIN DEBUG ===');
+                    console.log('data.data:', JSON.stringify(data.data));
+                    console.log('data.data.userId:', data.data.userId);
+                    console.log('data.data.id:', data.data.id);
+                    console.log('==================');
                     sessionStorage.setItem("firstName", data.data.firstName || "");
                     sessionStorage.setItem("lastName", data.data.lastName || "");
                     sessionStorage.setItem("email", data.data.email || email);
+                    sessionStorage.setItem("userId", data.data.userId || data.data.id || ""); // ✅ Lưu userId
+                    sessionStorage.setItem("role", data.data.role || "");
                 } else {
                     sessionStorage.setItem("email", email);
                 }

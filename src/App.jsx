@@ -13,6 +13,10 @@ import SearchHotel from './pages/SearchHotel/SearchHotel';
 import DetalHotel from './pages/DetailHotel/DetailHotel';
 import BookingDetail from './components/BookingDetail';
 import Payment from './components/Payment';
+import Profile from './pages/Profile/Profile';
+import MyBookings from './pages/MyBookings/MyBookings';
+import MyReviews from './pages/MyReviews/MyReviews';
+import ChangePassword from './pages/ChangePassword/ChangePassword';
 
 const App = () => {
 
@@ -38,6 +42,10 @@ const App = () => {
           <Route path='/hotels/:id' element={<DetalHotel />} />
           <Route path='/booking' element={<BookingDetail />} />
           <Route path='/payment' element={<Payment />} />
+          <Route path='/profile' element={<Profile />} />
+          <Route path='/my-bookings' element={<MyBookings />} />
+          <Route path='/my-reviews' element={<MyReviews />} />
+          <Route path='/change-password' element={<ChangePassword />} />
         </Routes>
       </div>
     </div>

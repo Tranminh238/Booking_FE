@@ -77,8 +77,13 @@ const Header = () => {
 
     return (
         <div
-            className='flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 xl:px-32 text-white bg-no-repeat bg-cover bg-center h-120'
-            style={{ backgroundImage: `url(${headerImg})` }}
+            className="relative flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 xl:px-32 h-[500px] text-white bg-cover bg-center bg-no-repeat overflow-hidden"
+            style={{
+                backgroundImage: `
+                    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+                    url(${headerImg})
+                `,
+            }}
         >
             <h1 className='text-4xl md:text-6xl lg:text-7xl font-playfair font-bold mb-4'>
                 Khám phá vẻ đẹp của Việt Nam
@@ -86,7 +91,7 @@ const Header = () => {
             <p className='text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl'>
                 Trải nghiệm dịch vụ đẳng cấp và những khoảnh khắc đáng nhớ tại các khách sạn hàng đầu của chúng tôi.
             </p>
-            <form onSubmit={handleSearch} className='bg-white text-gray-500 rounded-lg p-4 md:p-6 w-full max-w-6xl mx-auto flex flex-col md:flex-row items-end gap-4 shadow-lg'>
+            <form onSubmit={handleSearch} className='bg-white text-gray-500 rounded-lg p-4 md:p-6 w-full max-w-6xl mx-auto flex flex-col md:flex-row items-end gap-3 shadow-lg'>
                 {/* Destination Input */}
                 <div className='flex-1 w-full'>
                     <div className='flex items-center gap-2'>

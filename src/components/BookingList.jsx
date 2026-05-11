@@ -45,18 +45,23 @@ export default function BookingList() {
         const data = await res.json();
 
         const parseBookings = (list) => {
-          return list.map((item, index) => ({
-            id: index, // Tạm thời dùng index vì API List<Object[]> không trả về ID booking
-            firstName: item[0],
-            lastName: item[1],
-            email: item[2],
-            phone: item[3],
-            hotelName: item[4],
-            roomTypeName: item[5],
-            checkIn: item[6],
-            checkOut: item[7],
-            totalPrice: item[8],
-            paymentStatus: item[9],
+          return list.map((item) => ({
+            id: item.id,
+            firstName: item.firstName,
+            lastName: item.lastName,
+            email: item.email || item.contactEmail,
+            phone: item.phone || item.contactPhone,
+            hotelName: item.hotelName,
+            roomTypeName: item.roomTypeName,
+            checkIn: item.checkInDate,   // ← DTO dùng checkInDate
+            checkOut: item.checkOutDate, // ← DTO dùng checkOutDate
+            totalPrice: item.totalPrice,
+            paymentStatus: item.paymentStatus,
+            bookingStatus: item.bookingStatus,
+            contactName: item.contactName,
+            contactPhone: item.contactPhone,
+            contactEmail: item.contactEmail,
+            numRoom: item.numRoom,
           }));
         };
 
@@ -89,6 +94,40 @@ export default function BookingList() {
       (b.roomTypeName && b.roomTypeName.toLowerCase().includes(q))
     );
   });
+
+  const handleComplete = async (bookingId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn hoàn thành đặt phòng này?")) return;
+    try {
+      const res = await fetch(`http://localhost:8889/api/booking/complete/${bookingId}`, {
+        method: 'PUT'
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Lỗi khi hoàn thành đặt phòng");
+      }
+      alert("Hoàn thành đặt phòng thành công!");
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, bookingStatus: 3 } : b));
+    } catch (err) {
+      alert("Lỗi: " + err.message);
+    }
+  };
+
+  const handleCancel = async (bookingId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn huỷ đặt phòng này?")) return;
+    try {
+      const res = await fetch(`http://localhost:8889/api/booking/cancel/${bookingId}`, {
+        method: 'PUT'
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Lỗi khi huỷ đặt phòng");
+      }
+      alert("Huỷ đặt phòng thành công!");
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, bookingStatus: 0 } : b));
+    } catch (err) {
+      alert("Lỗi: " + err.message);
+    }
+  };
 
   return (
     <div className="pd-list" style={{ padding: '24px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)' }}>
@@ -125,14 +164,15 @@ export default function BookingList() {
                 <th style={{ padding: '16px', fontWeight: 600 }}>Khách sạn & Phòng</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Thời gian</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Tổng tiền</th>
-                <th style={{ padding: '16px', borderRadius: '0 8px 8px 0', fontWeight: 600 }}>Trạng thái TT</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Trạng thái</th>
+                {role !== 'ADMIN' && <th style={{ padding: '16px', borderRadius: '0 8px 8px 0', fontWeight: 600, textAlign: 'center' }}>Hành động</th>}
               </tr>
             </thead>
             <tbody>
               {filteredBookings.map((b) => (
                 <tr key={b.id} style={{ borderBottom: '1px solid #f3f4f6', transition: 'background 0.2s', ':hover': { background: '#f9fafb' } }}>
                   <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                    <div style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '4px' }}>{b.lastName} {b.firstName}</div>
+                    <div style={{ fontWeight: 600, color: '#111827', fontSize: '15px', marginBottom: '4px' }}>{b.contactName}</div>
                     <div style={{ fontSize: '13px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px' }}><span>✉️</span> {b.email || '—'}</div>
                     <div style={{ fontSize: '13px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}><span>📞</span> {b.phone || '—'}</div>
                   </td>
@@ -157,13 +197,35 @@ export default function BookingList() {
                       borderRadius: '20px',
                       fontSize: '12px',
                       fontWeight: 600,
-                      background: b.paymentStatus === 1 ? '#dcfce7' : (b.paymentStatus === 2 ? '#dbeafe' : '#fef3c7'),
-                      color: b.paymentStatus === 1 ? '#16a34a' : (b.paymentStatus === 2 ? '#1e40af' : '#b45309'),
+                      background: b.bookingStatus === 3 ? '#dbeafe' : b.bookingStatus === 0 ? '#fee2e2' : b.bookingStatus === 2 ? '#dcfce7' : '#fef3c7',
+                      color: b.bookingStatus === 3 ? '#1e40af' : b.bookingStatus === 0 ? '#991b1b' : b.bookingStatus === 2 ? '#16a34a' : '#b45309',
                       display: 'inline-block'
                     }}>
-                      {b.paymentStatus === 2 ? 'Đã thanh toán' : (b.paymentStatus === 1 ? 'Chưa thanh toán' : 'Hoàn thành')}
+                      {b.bookingStatus === 1 ? 'Chờ xác nhận' : b.bookingStatus === 2 ? 'Đã xác nhận' : b.bookingStatus === 3 ? 'Hoàn thành' : b.bookingStatus === 0 ? 'Đã huỷ' : 'Không xác định'}
                     </span>
                   </td>
+                  {role !== 'ADMIN' && (
+                    <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexDirection: 'column', alignItems: 'center' }}>
+                        {b.bookingStatus === 2 && (
+                          <button
+                            onClick={() => handleComplete(b.id)}
+                            style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, width: '100px' }}
+                          >
+                            Hoàn thành
+                          </button>
+                        )}
+                        {(b.bookingStatus === 1 || b.bookingStatus === 2) && (
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, width: '100px' }}
+                          >
+                            Huỷ
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
