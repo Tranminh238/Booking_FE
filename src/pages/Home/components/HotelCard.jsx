@@ -137,7 +137,7 @@ const HotelCard = ({ onCityClick }) => {
         if (onCityClick) {
             onCityClick(cityName);
         } else {
-            navigate(`/hotels?city=${encodeURIComponent(cityName)}`);
+            navigate(`/hotels?keyword=${encodeURIComponent(cityName)}`);
         }
     };
 
@@ -208,19 +208,8 @@ const HotelCard = ({ onCityClick }) => {
                                     {/* Gradient overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                                    {/* Badge top-right: top booking */}
-                                    {globalIdx < 3 && (
-                                        <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <FireOutlined />
-                                            Top {globalIdx + 1}
-                                        </div>
-                                    )}
+    
 
-                                    {/* Rating bottom-left */}
-                                    <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                                        <StarFilled style={{ color: '#fadb14', fontSize: 13 }} />
-                                        <span className="text-white text-xs font-semibold">{city.rating}</span>
-                                    </div>
 
                                     {/* Country bottom-right */}
                                     <div className="absolute bottom-2 right-2 flex items-center gap-1">
@@ -230,14 +219,11 @@ const HotelCard = ({ onCityClick }) => {
                                 </div>
 
                                 {/* Card body */}
-                                <div className="bg-white px-3 py-2.5">
+                                <div className="flex justify-between items-center bg-white px-3 py-2.5">
                                     <h3 className="font-bold text-gray-800 text-base mb-1 truncate">{city.name}</h3>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-indigo-600 text-xs font-medium">{city.hotels.toLocaleString()}+ khách sạn</span>
-                                        <span className="text-orange-500 text-xs font-medium flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
-                                            Khám phá <ArrowRightOutlined style={{ fontSize: 10 }} />
-                                        </span>
-                                    </div>
+                                    <span className="text-orange-500 text-xs font-medium flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
+                                        Khám phá <ArrowRightOutlined style={{ fontSize: 10 }} />
+                                    </span>
                                 </div>
                             </div>
                         ))}

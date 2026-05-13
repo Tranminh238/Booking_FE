@@ -233,6 +233,9 @@ export default function InfoHotel({data}) {
   const hotelName = data.name || "Tên khách sạn";
   const star = data.star || 0;
   const ratingAvg = data.rating_avg || 0;
+  const firstName = data.firstName || "";
+  const lastName = data.lastName || "";
+
   const address = [data.district, data.city, data.country].filter(Boolean).join(", ");
   const description = data.description || "";
 
@@ -338,7 +341,7 @@ export default function InfoHotel({data}) {
                 reviews.map((review, i) => (
                   <div key={i} style={{ marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px solid #eaeaea' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <strong style={{ fontSize: '14px' }}>{review.userName || 'Ẩn danh'}</strong>
+                      <strong style={{ fontSize: '14px' }}>{review.firstName + " " + review.lastName || 'Ẩn danh'}</strong>
                       <span style={{ color: "#4f46e5", fontSize: '14px', fontWeight: 'bold' }}>{review.rating}/10 </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '13px', color: 'black', lineHeight: '1.4' }}>{review.comment}</p>
