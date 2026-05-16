@@ -169,7 +169,7 @@ const ExclusiveOffer = () => {
                         flex: `0 0 calc(${cardWidthPercent}% - ${((CARDS_PER_VIEW - 1) * gap) / CARDS_PER_VIEW}px)`,
                         minWidth: 0,
                       }}
-                      className="group cursor-pointer"
+                      className="group cursor-pointer "
                       onClick={() => handleHotelClick(hotel)}
                     >
                       {/* Image */}
