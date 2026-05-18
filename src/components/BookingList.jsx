@@ -21,7 +21,7 @@ const STATUS_TABS = [
   },
   {
     key: 1,
-    label: "Chưa thanh toán",
+    label: "Chờ xác nhận",
     color: "#b45309",
     bg: "#fef3c7",
   },

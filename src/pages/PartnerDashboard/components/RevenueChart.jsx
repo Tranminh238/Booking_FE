@@ -63,12 +63,12 @@ export default function RevenueChart() {
     try {
       let url = '';
       if (selectedHotel !== 'all') {
-        url = `${API_BASE}/api/thongke/revenue/hotel?hotelId=${selectedHotel}&year=${year}&month=${month}`;
+        url = `${API_BASE}/api/thongke/revenue-hotel?hotelId=${selectedHotel}&year=${year}&month=${month}`;
       } else {
         if (role === 'ADMIN') {
-          url = `${API_BASE}/api/thongke/revenue/admin?year=${year}&month=${month}`;
+          url = `${API_BASE}/api/thongke/revenue-admin?year=${year}&month=${month}`;
         } else if (role === 'PARTNER') {
-          url = `${API_BASE}/api/thongke/revenue/partner?userId=${userId}&year=${year}&month=${month}`;
+          url = `${API_BASE}/api/thongke/revenue-partner?userId=${userId}&year=${year}&month=${month}`;
         }
       }
 
@@ -197,7 +197,7 @@ export default function RevenueChart() {
             onChange={(e) => setYear(Number(e.target.value))}
             className="pd-revenue-chart__select"
           >
-            {[now.getFullYear() - 1, now.getFullYear()].map(y => (
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>

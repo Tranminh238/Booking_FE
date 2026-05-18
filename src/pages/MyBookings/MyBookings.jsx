@@ -319,7 +319,7 @@ const MyBookings = () => {
 
                             return (
                                 <div key={booking.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                                    <div className="flex flex-col sm:flex-row cursor-pointer" onClick={() => handleHotelClick(booking.hotelId)}>
+                                    <div className="flex flex-col sm:flex-row cursor-pointer" >
                                         {/* Hotel Image */}
                                         {booking.hotelImg ? (
                                             <img
@@ -335,11 +335,11 @@ const MyBookings = () => {
                                             </div>
                                         )}
 
-                                        <div className="p-5 flex-1 flex flex-col justify-between">
+                                        <div className="p-5 flex-1 flex flex-col justify-between" >
                                             <div>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h3 className="font-semibold text-gray-800 text-base">{booking.hotelName || "—"}</h3>
+                                                        <h3 className="font-semibold text-gray-800 text-base" onClick={() => handleHotelClick(booking.hotelId)}>{booking.hotelName || "—"}</h3>
                                                         {booking.district && booking.city && (
                                                             <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
                                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

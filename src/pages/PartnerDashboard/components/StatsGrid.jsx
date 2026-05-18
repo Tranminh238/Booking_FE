@@ -17,10 +17,10 @@ export default function StatsGrid() {
       : "—";
 
   const stats = [
-    { label: "Chỗ nghỉ hoạt động", value: active.length, icon: "🏨", color: "#003580" },
-    { label: "Tổng đặt phòng", value: totalBookings, icon: "📅", color: "#0ea5e9" },
-    { label: "Doanh thu tháng", value: formatVND(totalRevenue), icon: "💰", color: "#10b981" },
-    { label: "Đánh giá trung bình", value: avgRating, icon: "⭐", color: "#f59e0b" },
+    { label: "Chỗ nghỉ hoạt động", value: active.length, icon: "", color: "#003580" },
+    { label: "Tổng đặt phòng", value: totalBookings, icon: "", color: "#0ea5e9" },
+    { label: "Doanh thu tháng", value: formatVND(totalRevenue), icon: "", color: "#10b981" },
+    { label: "Đánh giá trung bình", value: avgRating, icon: "", color: "#f59e0b" },
   ];
 
   return (

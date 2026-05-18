@@ -53,9 +53,7 @@ const Navbar = () => {
             </Link>
             <div className="hidden sm:flex items-center gap-8">
                 <Link to="/">Trang Chủ</Link>
-                <Link to="/About">Khách sạn</Link>
                 <Link to="/partner">Đăng chỗ nghỉ của bạn</Link>
-                <Link to="/MyBooking">Chỗ Đặt Của Tôi</Link>
 
                 {isAuthenticated ? (
                     <div className="relative" ref={profileMenuRef}>
