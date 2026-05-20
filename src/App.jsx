@@ -1,5 +1,6 @@
 import React from 'react'
 import Navbar from './components/Navbar'
+import Chatbot from './components/Chatbot'
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Login from './pages/Login/login';
@@ -46,6 +47,7 @@ const App = () => {
           <Route path='/change-password' element={<ChangePassword />} />
         </Routes>
       </div>
+      {!isOwnerPath && !isPartnerPath && !isAdminPath && <Chatbot />}
     </div>
   )
 }
