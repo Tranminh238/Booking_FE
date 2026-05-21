@@ -18,6 +18,7 @@ import Profile from './pages/Profile/Profile';
 import MyBookings from './pages/MyBookings/MyBookings';
 import ChangePassword from './pages/ChangePassword/ChangePassword';
 import Wishlist from './components/Wishlist';
+import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
 
 const App = () => {
 
@@ -47,6 +48,7 @@ const App = () => {
           <Route path='/my-bookings' element={<MyBookings />} />
           <Route path='/change-password' element={<ChangePassword />} />
           <Route path='/my-wishlist' element={<Wishlist />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
         </Routes>
       </div>
       {!isOwnerPath && !isPartnerPath && !isAdminPath && <Chatbot />}

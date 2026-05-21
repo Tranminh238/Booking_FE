@@ -36,6 +36,7 @@ const PartnerLogin = () => {
                     sessionStorage.setItem("partner_lastName", data.data.lastName || "");
                     sessionStorage.setItem("partner_userId", data.data.userId || "");
                     sessionStorage.setItem("partner_role", data.data.role || "");
+                    sessionStorage.setItem("token", data.data.token || "");
                 }
 
                 setTimeout(() => {
@@ -89,9 +90,9 @@ const PartnerLogin = () => {
 
                     />
                     <div className="text-right py-4">
-                        <a className="text-blue-600 underline" href="#">
+                        <Link to="/forgot-password" className="text-blue-600 underline">
                             Forgot Password
-                        </a>
+                        </Link>
                     </div>
                     <button
                         type="submit"

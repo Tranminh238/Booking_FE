@@ -42,6 +42,7 @@ const Login = () => {
                     sessionStorage.setItem("email", data.data.email || email);
                     sessionStorage.setItem("userId", data.data.userId || data.data.id || ""); // ✅ Lưu userId
                     sessionStorage.setItem("role", data.data.role || "");
+                    sessionStorage.setItem("token", data.data.token || "");
                 } else {
                     sessionStorage.setItem("email", email);
                 }
@@ -94,8 +95,10 @@ const Login = () => {
 
                     />
                     <div className="text-right py-4">
-                        <a className="text-blue-600 underline" href="#">
-                            Forgot Password
+                        <a className="text-blue-600 underline">
+                            <Link to="/forgot-password">
+                                Forgot Password
+                            </Link>
                         </a>
                     </div>
                     <button

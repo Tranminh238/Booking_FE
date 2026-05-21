@@ -35,6 +35,46 @@ const StarDisplay = ({ rating, max = 10 }) => (
     </div>
 );
 
+const Toast = ({ toasts, onRemove }) => (
+    <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
+        {toasts.map((toast) => (
+            <div key={toast.id} className="pointer-events-auto animate-slide-in">
+                <div className={`min-w-[300px] max-w-sm px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-sm flex items-start gap-3 ${
+                    toast.type === "error"
+                        ? "bg-red-50 border-red-200 text-red-700"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                }`}>
+                    <div className="mt-0.5 shrink-0">
+                        {toast.type === "error" ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm">
+                            {toast.type === "error" ? "Thao tác thất bại" : "Thành công"}
+                        </p>
+                        <p className="text-sm opacity-90 mt-0.5 leading-relaxed">{toast.msg}</p>
+                    </div>
+                    <button
+                        onClick={() => onRemove(toast.id)}
+                        className="opacity-40 hover:opacity-80 transition shrink-0 mt-0.5"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 const MyBookings = () => {
     const navigate = useNavigate();
     const role = sessionStorage.getItem("role");
@@ -44,28 +84,36 @@ const MyBookings = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("all");
+    const [deleteModal, setDeleteModal] = useState(null);
 
-    // reviewModal: booking object or null
     const [reviewModal, setReviewModal] = useState(null);
     const [rating, setRating] = useState(0);
     const [comment, setComment] = useState("");
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [reviewError, setReviewError] = useState("");
 
-    // reviews map: bookingId -> review object
     const [reviewsMap, setReviewsMap] = useState({});
-
-    // expanded review dropdown: bookingId or null
     const [expandedReview, setExpandedReview] = useState(null);
+    const [toasts, setToasts] = useState([]);
 
-    // Fetch all reviews for this user to build reviewsMap
+    const showToast = (msg, type = "success") => {
+        const id = Date.now() + Math.random();
+        setToasts((prev) => [...prev, { id, msg, type }]);
+        setTimeout(() => {
+            setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, 3500);
+    };
+
+    const handleRemoveToast = (id) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    };
+
     const fetchUserReviews = async () => {
         if (!userId) return;
         try {
             const res = await fetch(`http://localhost:8889/api/reviews/user/${userId}`);
             if (!res.ok) return;
             const data = await res.json();
-            // data is array of review objects with bookingId field
             const map = {};
             (Array.isArray(data) ? data : []).forEach((r) => {
                 if (r.bookingId) map[r.bookingId] = r;
@@ -75,8 +123,35 @@ const MyBookings = () => {
             console.error("Failed to fetch user reviews:", err);
         }
     };
+
     const handleHotelClick = (hotelId) => {
         navigate(`/hotels/${hotelId}`);
+    };
+
+    const handleDeleteReview = async (bookingId) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) return;
+        try {
+            const res = await fetch(`http://localhost:8889/api/reviews/delete/${bookingId}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) {
+                const msg = await res.text();
+                throw new Error(msg || "Xóa đánh giá thất bại");
+            }
+
+            setReviewsMap((prev) => {
+                const updated = { ...prev };
+                delete updated[bookingId];
+                return updated;
+            });
+
+            setExpandedReview(null);
+            setDeleteModal(null);
+            showToast("Xóa đánh giá thành công!");
+        } catch (err) {
+            showToast(err.message || "Xóa đánh giá thất bại!", "error");
+        }
     };
 
     const handleReviewSubmit = async (e) => {
@@ -102,9 +177,8 @@ const MyBookings = () => {
                 const msg = await res.text();
                 throw new Error(msg || "Có lỗi xảy ra khi gửi đánh giá.");
             }
-            alert(isEditing ? "Cập nhật đánh giá thành công!" : "Đăng đánh giá thành công!");
+            showToast(isEditing ? "Cập nhật đánh giá thành công!" : "Đăng đánh giá thành công!");
             setReviewModal(null);
-            // Refresh reviews map so button updates to "Xem đánh giá"
             await fetchUserReviews();
         } catch (err) {
             setReviewError(err.message);
@@ -118,10 +192,10 @@ const MyBookings = () => {
         try {
             const res = await fetch(`http://localhost:8889/api/booking/cancel/${bookingId}`, { method: "PUT" });
             if (!res.ok) throw new Error(await res.text() || "Lỗi khi hủy đặt phòng");
-            alert("Hủy đặt phòng thành công!");
+            showToast("Hủy đặt phòng thành công!");
             setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, bookingStatus: 0 } : b));
         } catch (err) {
-            alert(err.message);
+            showToast(err.message, "error");
         }
     };
 
@@ -195,13 +269,12 @@ const MyBookings = () => {
         { key: "cancelled", label: "Đã hủy", status: 0 },
     ];
 
-    const filtered =
-        activeTab === "all"
-            ? bookings
-            : bookings.filter((b) => {
-                  const tab = tabs.find((t) => t.key === activeTab);
-                  return tab && b.bookingStatus === tab.status;
-              });
+    const filtered = activeTab === "all"
+        ? bookings
+        : bookings.filter((b) => {
+              const tab = tabs.find((t) => t.key === activeTab);
+              return tab && b.bookingStatus === tab.status;
+          });
 
     const formatVND = (n) => (n || 0).toLocaleString("vi-VN") + " ₫";
     const formatDate = (d) => {
@@ -223,6 +296,7 @@ const MyBookings = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50 to-cyan-50 py-10 px-4">
+            <Toast toasts={toasts} onRemove={handleRemoveToast} />
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="relative bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-8 mb-6 overflow-hidden shadow-xl">
@@ -285,7 +359,6 @@ const MyBookings = () => {
                     ))}
                 </div>
 
-                {/* Error */}
                 {error && (
                     <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 mb-4 text-sm">
                         ❌ {error}
@@ -302,7 +375,6 @@ const MyBookings = () => {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-16 text-center">
-                        <div className="text-6xl mb-4"></div>
                         <h3 className="text-gray-700 font-semibold text-lg mb-2">Chưa có đặt phòng nào</h3>
                         <p className="text-gray-400 text-sm mb-6">Hãy khám phá và đặt phòng khách sạn yêu thích!</p>
                         <Link to="/hotels" className="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600 transition">
@@ -319,8 +391,7 @@ const MyBookings = () => {
 
                             return (
                                 <div key={booking.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                                    <div className="flex flex-col sm:flex-row cursor-pointer" >
-                                        {/* Hotel Image */}
+                                    <div className="flex flex-col sm:flex-row">
                                         {booking.hotelImg ? (
                                             <img
                                                 src={booking.hotelImg}
@@ -335,11 +406,13 @@ const MyBookings = () => {
                                             </div>
                                         )}
 
-                                        <div className="p-5 flex-1 flex flex-col justify-between" >
+                                        <div className="p-5 flex-1 flex flex-col justify-between">
                                             <div>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h3 className="font-semibold text-gray-800 text-base" onClick={() => handleHotelClick(booking.hotelId)}>{booking.hotelName || "—"}</h3>
+                                                        <h3 className="font-semibold text-gray-800 text-base hover:text-teal-600 cursor-pointer" onClick={() => handleHotelClick(booking.hotelId)}>
+                                                            {booking.hotelName || "—"}
+                                                        </h3>
                                                         {booking.district && booking.city && (
                                                             <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
                                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,7 +456,6 @@ const MyBookings = () => {
                                                 <div className="flex gap-2">
                                                     {booking.bookingStatus === 3 && (
                                                         existingReview ? (
-                                                            /* Already reviewed → "Xem đánh giá" toggle button */
                                                             <button
                                                                 onClick={() => setExpandedReview(isExpanded ? null : booking.id)}
                                                                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 transition"
@@ -401,7 +473,6 @@ const MyBookings = () => {
                                                                 </svg>
                                                             </button>
                                                         ) : (
-                                                            /* Not yet reviewed → "Đánh giá" button */
                                                             <button
                                                                 onClick={() => { setReviewModal(booking); setRating(0); setComment(""); setReviewError(""); }}
                                                                 className="text-xs px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-600 rounded-lg hover:bg-yellow-100 transition"
@@ -423,40 +494,58 @@ const MyBookings = () => {
                                         </div>
                                     </div>
 
-                                    {/* ── Inline review dropdown ── */}
+                                    {/* Inline review dropdown view */}
                                     {isExpanded && existingReview && (
-                                        <div className="border-t border-gray-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4 animate-slide-down">
-                                            <div className="flex items-center justify-between mb-3">
+                                        <div className="border-t border-gray-100 bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-4">
+                                            <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-semibold text-indigo-700">Đánh giá của bạn</span>
-                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${ratingColor(existingReview.rating)}`}>
-                                                        {existingReview.rating}/10
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${ratingColor(existingReview.rating)}`}>
+                                                        {existingReview.rating}/10 ★
                                                     </span>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        setReviewModal(booking);
-                                                        setRating(existingReview.rating);
-                                                        setComment(existingReview.comment);
-                                                        setReviewError("");
-                                                    }}
-                                                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"
-                                                >
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                    Chỉnh sửa
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    {/* Edit Button */}
+                                                    <button
+                                                        onClick={() => {
+                                                            setReviewModal(booking);
+                                                            setRating(existingReview.rating);
+                                                            setComment(existingReview.comment);
+                                                            setReviewError("");
+                                                        }}
+                                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition"
+                                                    >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                        Chỉnh sửa
+                                                    </button>
+
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        onClick={() => handleDeleteReview(booking.id)}
+                                                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition"
+                                                    >
+                                                        <svg
+                                                            className="w-3.5 h-3.5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h8"
+                                                            />
+                                                        </svg>
+                                                        Xóa
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <StarDisplay rating={existingReview.rating} max={10} />
-                                            <p className="mt-3 text-sm text-gray-600 leading-relaxed bg-white/60 rounded-xl px-4 py-3 border border-indigo-100 italic">
-                                                "{existingReview.comment}"
+                                            <p className="text-sm text-gray-600 bg-white/60 p-3 rounded-xl border border-indigo-100/50 leading-relaxed">
+                                                {existingReview.comment || "Không có nhận xét."}
                                             </p>
-                                            {existingReview.createdAt && (
-                                                <p className="mt-2 text-xs text-gray-400">
-                                                    Đã đánh giá vào {new Date(existingReview.createdAt).toLocaleDateString("vi-VN")}
-                                                </p>
-                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -466,72 +555,56 @@ const MyBookings = () => {
                 )}
             </div>
 
-            {/* ── Review Modal ── */}
+            {/* Review Edit/Create Modal Overlay */}
             {reviewModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setReviewModal(null)} />
-                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden">
-                        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 pb-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-xl font-bold text-white">
-                                        {reviewsMap[reviewModal.id] ? "Chỉnh sửa đánh giá" : "Viết đánh giá"}
-                                    </h2>
-                                    <p className="text-teal-100 text-sm mt-0.5 truncate">{reviewModal.hotelName}</p>
-                                </div>
-                                <button onClick={() => setReviewModal(null)} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition">✕</button>
-                            </div>
-                        </div>
-                        <form onSubmit={handleReviewSubmit} className="p-6 space-y-5">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
+                        <h3 className="text-lg font-bold text-gray-800 mb-1">
+                            {reviewsMap[reviewModal.id] ? "Cập nhật đánh giá" : "Viết đánh giá"}
+                        </h3>
+                        <p className="text-xs text-gray-400 mb-4">{reviewModal.hotelName}</p>
+                        
+                        <form onSubmit={handleReviewSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Điểm đánh giá <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-2">Số sao (1 - 10)</label>
                                 <StarPicker value={rating} onChange={setRating} max={10} />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Nhận xét <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Nhận xét của bạn</label>
                                 <textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
+                                    placeholder="Chia sẻ trải nghiệm lưu trú của bạn tại đây..."
                                     rows={4}
-                                    maxLength={1000}
-                                    placeholder="Chia sẻ trải nghiệm của bạn về khách sạn này..."
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none resize-none text-sm text-gray-700 transition"
+                                    className="w-full text-sm px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition"
                                 />
-                                <p className="text-xs text-gray-400 text-right mt-1">{comment.length}/1000</p>
                             </div>
+
                             {reviewError && (
-                                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                                    <span>⚠️</span> {reviewError}
-                                </div>
+                                <p className="text-xs font-medium text-red-500">⚠️ {reviewError}</p>
                             )}
-                            <div className="flex gap-3 pt-1">
-                                <button type="button" onClick={() => setReviewModal(null)} className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition font-medium">Huỷ</button>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setReviewModal(null)}
+                                    disabled={reviewSubmitting}
+                                    className="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-xl transition"
+                                >
+                                    Hủy
+                                </button>
                                 <button
                                     type="submit"
                                     disabled={reviewSubmitting}
-                                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-semibold hover:opacity-90 disabled:opacity-60 transition flex items-center justify-center gap-2"
+                                    className="px-5 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-xl shadow-sm disabled:opacity-50 transition"
                                 >
-                                    {reviewSubmitting && (
-                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                        </svg>
-                                    )}
-                                    {reviewSubmitting ? "Đang gửi..." : (reviewsMap[reviewModal.id] ? "Lưu thay đổi" : "Gửi đánh giá")}
+                                    {reviewSubmitting ? "Đang gửi..." : "Hoàn tất"}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-            <style>{`
-                @keyframes slide-down {
-                    from { opacity: 0; transform: translateY(-8px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                .animate-slide-down { animation: slide-down 0.22s ease; }
-            `}</style>
         </div>
     );
 };

@@ -9,13 +9,14 @@ export default function Sidebar({ role }) {
     { label: 'Quản lý người dùng', path: '/admin-dashboard/users' },
     { label: 'Quản lý khách sạn', path: '/admin-dashboard/hotels' },
     { label: 'Quản lý đặt phòng', path: '/admin-dashboard/bookings' },
+    { label: 'Quản lý đánh giá', path: '/admin-dashboard/reviews' },
   ];
 
   const partnerMenu = [
     { label: 'Dashboard', path: '/partner-dashboard' },
-    { label: 'Khách sạn của tôi', path: '/partner-dashboard/my-hotels' },
-    { label: 'Đặt phòng', path: '/partner-dashboard/bookings' },
-    { label: 'Đánh giá', path: '/partner-dashboard/reviews' },
+    { label: 'Quản lý khách sạn', path: '/partner-dashboard/my-hotels' },
+    { label: 'Quản lý đặt phòng', path: '/partner-dashboard/bookings' },
+    { label: 'Quản lý Đánh giá', path: '/partner-dashboard/reviews' },
     { label: 'Hồ sơ', path: '/partner-dashboard/profile' },
   ];
 
