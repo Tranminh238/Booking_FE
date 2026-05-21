@@ -74,6 +74,11 @@ const SearchHotel = () => {
         if (filters.sort) body.sort = filters.sort;
         if (filters.order) body.order = filters.order;
 
+        const storedUserId = sessionStorage.getItem("userId");
+        if (storedUserId) {
+            body.userId = parseInt(storedUserId, 10);
+        }
+
         return body;
     }, [searchBarState, filters]);
 

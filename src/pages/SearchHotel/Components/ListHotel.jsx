@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { HeartOutlined, HeartFilled } from '@ant-design/icons';
 
 const StarDisplay = ({ star }) => {
     const count = Math.round(star || 0);
@@ -33,7 +34,7 @@ const RatingBadge = ({ rating }) => {
     );
 };
 
-const HotelCard = ({ hotel }) => {
+export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const mainImage = (hotel.images && hotel.images.length > 0) ? hotel.images[0] : null;
@@ -68,6 +69,19 @@ const HotelCard = ({ hotel }) => {
                     <div className="hotel-card-img-count">
                         📷 {hotel.images.length}
                     </div>
+                )}
+                {/* Heart Button */}
+                {onWishlistToggle && (
+                    <button
+                        className="wishlist-btn"
+                        onClick={(e) => onWishlistToggle(e, hotel.id)}
+                    >
+                        {isWishlisted ? (
+                            <HeartFilled style={{ color: '#ef4444', fontSize: '18px' }} />
+                        ) : (
+                            <HeartOutlined style={{ color: '#9ca3af', fontSize: '18px' }} />
+                        )}
+                    </button>
                 )}
             </div>
 
@@ -185,6 +199,27 @@ const HotelCard = ({ hotel }) => {
                     font-size: 11px;
                     padding: 2px 7px;
                     border-radius: 5px;
+                }
+                .wishlist-btn {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(255, 255, 255, 0.85);
+                    border: none;
+                    border-radius: 50%;
+                    width: 34px;
+                    height: 34px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                    transition: all 0.2s ease;
+                    z-index: 10;
+                }
+                .wishlist-btn:hover {
+                    background: #fff;
+                    transform: scale(1.1);
                 }
                 .hotel-card-info {
                     flex: 1;
@@ -330,6 +365,45 @@ const HotelCard = ({ hotel }) => {
 
 const ListHotel = ({ hotels, loading, total, page, pageSize, onPageChange }) => {
     const totalPages = Math.ceil(total / pageSize);
+    const userId = sessionStorage.getItem("userId");
+    const [wishlistIds, setWishlistIds] = useState([]);
+
+    useEffect(() => {
+        if (userId) {
+            fetch(`http://localhost:8889/api/wishlist/user/${userId}/ids`)
+                .then(res => res.json())
+                .then(resData => {
+                    if (resData.status === 200 && Array.isArray(resData.data)) {
+                        setWishlistIds(resData.data);
+                    }
+                })
+                .catch(err => console.error("Error fetching wishlist ids:", err));
+        }
+    }, [userId]);
+
+    const handleWishlistToggle = async (e, hotelId) => {
+        e.stopPropagation();
+        if (!userId) {
+            alert("Vui lòng đăng nhập để lưu khách sạn yêu thích!");
+            return;
+        }
+        try {
+            const res = await fetch(`http://localhost:8889/api/wishlist/toggle?userId=${userId}&hotelId=${hotelId}`, {
+                method: 'POST'
+            });
+            const resData = await res.json();
+            if (resData.status === 200) {
+                const isAdded = resData.data;
+                if (isAdded) {
+                    setWishlistIds(prev => [...prev, hotelId]);
+                } else {
+                    setWishlistIds(prev => prev.filter(id => id !== hotelId));
+                }
+            }
+        } catch (err) {
+            console.error("Error toggling wishlist:", err);
+        }
+    };
 
     if (loading) {
         return (
@@ -379,7 +453,12 @@ const ListHotel = ({ hotels, loading, total, page, pageSize, onPageChange }) => 
     return (
         <div className="list-hotel-wrap">
             {hotels.map(hotel => (
-                <HotelCard key={hotel.id} hotel={hotel} />
+                <HotelCard
+                    key={hotel.id}
+                    hotel={hotel}
+                    isWishlisted={wishlistIds.includes(hotel.id)}
+                    onWishlistToggle={handleWishlistToggle}
+                />
             ))}
 
             {/* Pagination */}

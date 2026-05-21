@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LeftOutlined, RightOutlined, StarFilled } from '@ant-design/icons';
+import { LeftOutlined, RightOutlined, StarFilled, HeartOutlined, HeartFilled } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const CARDS_PER_VIEW = 4;
@@ -52,6 +52,47 @@ const ExclusiveOffer = () => {
   const [startIndex, setStartIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
+
+  const userId = sessionStorage.getItem("userId");
+  const [wishlistIds, setWishlistIds] = useState([]);
+
+  useEffect(() => {
+    if (userId) {
+      fetch(`${BASE_URL}/api/wishlist/user/${userId}/ids`)
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.status === 200 && Array.isArray(resData.data)) {
+            setWishlistIds(resData.data);
+          }
+        })
+        .catch((err) => console.error('Lỗi khi lấy ID danh sách yêu thích:', err));
+    }
+  }, [userId]);
+
+  const handleWishlistToggle = async (e, hotelId) => {
+    e.stopPropagation();
+    if (!userId) {
+      alert('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
+      navigate('/login');
+      return;
+    }
+    try {
+      const res = await fetch(`${BASE_URL}/api/wishlist/toggle?userId=${userId}&hotelId=${hotelId}`, {
+        method: 'POST',
+      });
+      const resData = await res.json();
+      if (resData.status === 200) {
+        const isAdded = resData.data;
+        if (isAdded) {
+          setWishlistIds((prev) => [...prev, hotelId]);
+        } else {
+          setWishlistIds((prev) => prev.filter((id) => id !== hotelId));
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi lưu danh sách yêu thích:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchHotels = async () => {
@@ -182,6 +223,17 @@ const ExclusiveOffer = () => {
                             e.target.src = `https://picsum.photos/seed/${hotel.id}/600/400`;
                           }}
                         />
+                        {/* Wishlist Button */}
+                        <button 
+                          onClick={(e) => handleWishlistToggle(e, hotel.id)}
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/85 hover:bg-white flex items-center justify-center border-none shadow-md cursor-pointer transition-all duration-200 hover:scale-110 z-10"
+                        >
+                          {wishlistIds.includes(hotel.id) ? (
+                            <HeartFilled style={{ color: '#ef4444', fontSize: '16px' }} />
+                          ) : (
+                            <HeartOutlined style={{ color: '#9ca3af', fontSize: '16px' }} />
+                          )}
+                        </button>
                         {/* Star badge */}
                         {hotel.star && (
                           <div className="absolute top-2 left-2 flex items-center gap-0.5 bg-black/50 rounded px-1.5 py-0.5">

@@ -258,7 +258,7 @@ const HotelCard = ({ onCityClick }) => {
     };
 
     return (
-        <section className="py-12 bg-gray-50 overflow-x-hidden">
+        <section className="py-12 bg-gray-50 overflow-x-visible">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
                 {/* Header */}
                 <div className="text-center mb-2">

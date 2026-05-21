@@ -56,16 +56,16 @@ function ChatMessage({ msg }) {
     <div className={`flex items-end gap-2 mb-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Avatar */}
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md flex-shrink-0 ${isUser
-          ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
-          : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+        ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
+        : 'bg-gradient-to-br from-blue-500 to-indigo-600'
         }`}>
         {isUser ? '👤' : 'AI'}
       </div>
 
       {/* Bubble */}
       <div className={`max-w-[78%] px-4 py-3 shadow-sm text-sm leading-relaxed ${isUser
-          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-sm'
-          : 'bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-bl-sm'
+        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-sm'
+        : 'bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-bl-sm'
         }`}>
         <div className="space-y-0.5">
           {formatText(msg.content)}

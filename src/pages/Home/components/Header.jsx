@@ -77,7 +77,7 @@ const Header = () => {
 
     return (
         <div
-            className="relative flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 xl:px-32 h-[500px] text-white bg-cover bg-center bg-no-repeat overflow-hidden"
+            className="relative flex flex-col items-start justify-center px-6 md:px-16 lg:px-24 xl:px-32 h-[500px] text-white bg-cover bg-center bg-no-repeat overflow-visible z-10"
             style={{
                 backgroundImage: `
                     linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
@@ -131,7 +131,7 @@ const Header = () => {
                 </div>
 
                 {/* Guests Input */}
-                <div className='flex-[0.8] w-full relative'>
+                <div className='flex-[0.8] w-full relative z-[99999]'>
                     <label className="block text-sm mb-1.5 font-medium">Khách và Phòng</label>
                     <div 
                         onClick={() => setOpenOptions(!openOptions)} 
@@ -140,7 +140,7 @@ const Header = () => {
                         {searchData.adults} Người lớn · {searchData.children} Trẻ em · {searchData.rooms} Phòng
                     </div>
                     {openOptions && (
-                        <div className="absolute top-[100%] right-0 mt-2 bg-white text-gray-800 shadow-xl rounded-lg p-4 z-50 w-72 border border-gray-100">
+                        <div className="absolute top-full right-0 mt-2 bg-white text-gray-800 shadow-2xl rounded-lg p-4 z-[999999] w-72 border border-gray-100">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="font-medium">Người lớn</span>
                                 <div className="flex items-center gap-3">

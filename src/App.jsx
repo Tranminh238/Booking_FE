@@ -17,6 +17,7 @@ import Payment from './components/Payment';
 import Profile from './pages/Profile/Profile';
 import MyBookings from './pages/MyBookings/MyBookings';
 import ChangePassword from './pages/ChangePassword/ChangePassword';
+import Wishlist from './components/Wishlist';
 
 const App = () => {
 
@@ -45,6 +46,7 @@ const App = () => {
           <Route path='/profile' element={<Profile />} />
           <Route path='/my-bookings' element={<MyBookings />} />
           <Route path='/change-password' element={<ChangePassword />} />
+          <Route path='/my-wishlist' element={<Wishlist />} />
         </Routes>
       </div>
       {!isOwnerPath && !isPartnerPath && !isAdminPath && <Chatbot />}

@@ -102,7 +102,7 @@ const SearchBar = ({ searchBar, setSearchBar, onSubmit }) => {
 
                     {/* Search Button */}
                     <button type="submit" className="search-hotel-btn">
-                        🔍 Tìm kiếm
+                         Tìm kiếm
                     </button>
                 </form>
             </div>
