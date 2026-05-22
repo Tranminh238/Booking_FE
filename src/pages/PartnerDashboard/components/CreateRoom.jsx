@@ -380,13 +380,21 @@ export default function CreateRoom({ onClose, initialHotelId }) {
 
   useEffect(() => {
     fetch('http://localhost:8889/api/amenities?type=ROOM')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setAmenitiesList(data);
-        else if (data && Array.isArray(data.data)) setAmenitiesList(data.data);
-        else setAmenitiesList([]);
-      })
-      .catch(err => console.error("Lỗi lấy amenities:", err));
+  .then(res => res.json())
+  .then(data => {
+    const amenities = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
+
+    const uniqueAmenities = [...new Map(
+      amenities.map(item => [item.id, item])
+    ).values()];
+
+    setAmenitiesList(uniqueAmenities);
+  })
+  .catch(err => console.error("Lỗi lấy amenities:", err));
 
     fetch('http://localhost:8889/api/room-types/get-all')
       .then(res => res.json())

@@ -1216,7 +1216,7 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
       {/* Info Section */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} onClick={() => onViewDetail(p)}>{p.name}</div>
           <div style={{ fontSize: '13px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span style={{ color: '#ef4444' }}>📍</span> {p.location}
           </div>
@@ -1234,21 +1234,7 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
         )}
       </div>
 
-      {/* Stats Cluster */}
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'center', borderLeft: '1px solid #f3f4f6', paddingLeft: '24px', paddingRight: '12px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: '18px', color: '#003580' }}>{p.rating ?? "—"}</div>
-          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{p.reviews} đánh giá</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: '16px', color: '#111827' }}>{p.bookings}</div>
-          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Đặt phòng</div>
-        </div>
-        <div style={{ textAlign: 'center', minWidth: '90px' }}>
-          <div style={{ fontWeight: 700, fontSize: '16px', color: '#003580' }}>{formatVND(p.revenue)}</div>
-          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Doanh thu</div>
-        </div>
-      </div>
+      
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
@@ -1264,11 +1250,6 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
             style={{ width: '130px', padding: '8px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
           >Chỉnh sửa</button>
         )}
-
-        <button
-          onClick={() => onViewDetail(p)}
-          style={{ width: '130px', padding: '8px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
-        >Chi tiết</button>
 
         {role === 'ADMIN' && currentTab === 'Chờ duyệt' && (
           <button

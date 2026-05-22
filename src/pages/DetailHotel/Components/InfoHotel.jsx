@@ -50,6 +50,14 @@ function GalleryCell({ bg, emoji, main, more, imgUrl, onClick }) {
   );
 }
 
+// ── Helper: tính số đêm từ 2 chuỗi ngày ──────────────────────────────
+function calcNights(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return 1;
+  const diff = new Date(checkOut) - new Date(checkIn);
+  const nights = Math.round(diff / (1000 * 60 * 60 * 24));
+  return nights > 0 ? nights : 1;
+}
+
 // ── Main component ────────────────────────────────────────────────────
 export default function InfoHotel({ data }) {
   const [searchParams] = useSearchParams();
@@ -67,10 +75,14 @@ export default function InfoHotel({ data }) {
 
   const [liked, setLiked]                   = useState(false);
   const [reviews, setReviews]               = useState([]);
+  const [totalReviews, setTotalReviews]     = useState(0);
+  const [reviewsCurrentPage, setReviewsCurrentPage] = useState(1);
+  const [reviewsTotalPages, setReviewsTotalPages]   = useState(1);
   const [rooms, setRooms]                   = useState([]);
   const [roomTypes, setRoomTypes]           = useState([]);
   const [amenities, setAmenities]           = useState([]);
   const [promotions, setPromotions]         = useState([]);
+  const [discountedPrices, setDiscountedPrices] = useState({});
   const [checkIn, setCheckIn]               = useState(initialCheckIn);
   const [checkOut, setCheckOut]             = useState(initialCheckOut);
   const [adults, setAdults]                 = useState(initialAdults);
@@ -80,11 +92,10 @@ export default function InfoHotel({ data }) {
   const [selectedRoom, setSelectedRoom]     = useState(null);
   const [imgIndex, setImgIndex]             = useState(0);
 
-  // Gallery modal
   const [galleryOpen, setGalleryOpen]       = useState(false);
   const [galleryIndex, setGalleryIndex]     = useState(0);
-
-  // All reviews modal
+  const [filteredRoomData, setFilteredRoomData] = useState(null);
+  const [filterLoading, setFilterLoading]   = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const [appliedSearch, setAppliedSearch] = useState({
@@ -96,57 +107,163 @@ export default function InfoHotel({ data }) {
   });
 
   const navigate = useNavigate();
-  const totalReview = reviews.length;
+
+  // ── Số đêm tính từ appliedSearch (dùng để hiển thị giá) ──
+  const numberOfNights = calcNights(appliedSearch.checkIn, appliedSearch.checkOut);
+
+  // ── Format tiền VND ──
+  const fmt = (n) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+
+  const fetchDiscountedPrices = async (hotelId, start, end) => {
+    if (!hotelId || !start || !end) return;
+    try {
+      const res = await fetch(`http://localhost:8889/api/room/hotel/${hotelId}/discounted-prices?checkIn=${start}&checkOut=${end}`);
+      const json = await res.json();
+      if (json.status === 200 && Array.isArray(json.data)) {
+        const priceMap = {};
+        json.data.forEach(item => {
+          priceMap[item.roomId] = item;
+        });
+        setDiscountedPrices(priceMap);
+      }
+    } catch (err) {
+      console.error("Lỗi fetch discounted prices:", err);
+    }
+  };
+
+  // ── Tính giá hiển thị cho 1 phòng ──
+  const getRoomPricing = (room) => {
+    const nights    = numberOfNights;
+    const numRooms  = appliedSearch.roomCount;
+
+    // Check if we have the new discounted price from our new API
+    if (discountedPrices[room.id]) {
+      const priceInfo = discountedPrices[room.id];
+      const displayTotal    = priceInfo.discountedTotalPrice * numRooms;
+      const displayOriginal = priceInfo.originalTotalPrice * numRooms;
+      const hasDiscount     = priceInfo.hasDiscount;
+      const discountPct     = priceInfo.discountPercentage;
+      return { displayTotal, displayOriginal, hasDiscount, discountPct, nights };
+    }
+
+    if (filteredRoomData?.discountedTotalPrice != null) {
+      // Backend đã tính đúng tổng cho tất cả đêm (cho 1 phòng)
+      const displayTotal    = filteredRoomData.discountedTotalPrice * numRooms;
+      const displayOriginal = filteredRoomData.originalTotalPrice   * numRooms;
+      const hasDiscount     = displayOriginal > displayTotal;
+      const discountPct     = hasDiscount
+        ? Math.round((1 - displayTotal / displayOriginal) * 100)
+        : 0;
+      return { displayTotal, displayOriginal, hasDiscount, discountPct, nights };
+    }
+
+    // Fallback: dùng promotion
+    const promo = promotions.find(p => p.roomId === room.id);
+    const discountPct     = promo?.discountPercentage || 0;
+    const pricePerNight   = promo
+      ? room.pricePerNight * (1 - discountPct / 100)
+      : room.pricePerNight;
+    const displayTotal    = pricePerNight   * numRooms * nights;
+    const displayOriginal = room.pricePerNight * numRooms * nights;
+    const hasDiscount     = discountPct > 0;
+    return { displayTotal, displayOriginal, hasDiscount, discountPct, nights };
+  };
 
   const handleBooking = (room) => {
     if (!appliedSearch.checkIn || !appliedSearch.checkOut) {
       alert("Vui lòng chọn ngày nhận phòng và ngày trả phòng trước khi đặt phòng.");
       return;
     }
-    const promo = promotions.find(p => p.roomId === room.id);
-    const pricePerNight = promo
-      ? room.pricePerNight - (room.pricePerNight * promo.discountPercentage / 100)
-      : room.pricePerNight;
-
+    const { displayTotal, displayOriginal, nights } = getRoomPricing(room);
     navigate('/booking', {
       state: {
         hotel: data,
         room,
         searchInfo: appliedSearch,
-        numberOfNights: getNumberOfNights(),
-        totalPrice: pricePerNight * appliedSearch.roomCount * getNumberOfNights(),
+        numberOfNights: nights,
+        totalPrice:    displayTotal,
+        originalTotal: displayOriginal,
       },
     });
   };
 
-  const handleSearchRooms = () => {
+  const handleSearchRooms = async () => {
     if (checkIn && checkOut && new Date(checkIn) >= new Date(checkOut)) {
       alert("Ngày trả phòng phải sau ngày nhận phòng.");
       return;
     }
-    setAppliedSearch({ adults, children, roomCount, checkIn, checkOut });
-  };
 
-  const getNumberOfNights = () => {
-    if (!appliedSearch.checkIn || !appliedSearch.checkOut) return 1;
-    const diff = new Date(appliedSearch.checkOut) - new Date(appliedSearch.checkIn);
-    return diff > 0 ? Math.ceil(diff / (1000 * 60 * 60 * 24)) : 1;
-  };
+    const newSearch = { adults, children, roomCount, checkIn, checkOut };
+    setAppliedSearch(newSearch);
+    setFilteredRoomData(null); // reset kết quả cũ trước
 
-  const numberOfNights = getNumberOfNights();
+    if (checkIn && checkOut) {
+      setFilterLoading(true);
+      try {
+        const res = await fetch("http://localhost:8889/api/hotels/searchHotels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: data.name,
+            checkInDate:  checkIn,
+            checkOutDate: checkOut,
+            num_guest: adults + children,
+            num_room:  roomCount,
+            page: 0,
+            size: 10,
+          }),
+        });
+        const json = await res.json();
+        if (json.status === 200 && json.data?.content?.length > 0) {
+          setFilteredRoomData(json.data.content[0]);
+        }
+      } catch (err) {
+        console.error("Lỗi filter rooms:", err);
+      } finally {
+        setFilterLoading(false);
+      }
+    }
+  };
 
   const filteredRooms = rooms.filter(room => {
-    const required = Math.ceil((appliedSearch.adults + appliedSearch.children) / appliedSearch.roomCount);
+    const required = Math.ceil(
+      (appliedSearch.adults + appliedSearch.children) / appliedSearch.roomCount
+    );
     return room.capacity >= required;
   });
 
+  const fetchReviews = (hotelId, pageNum = 1) => {
+    fetch(`http://localhost:8889/api/reviews/hotel/${hotelId}?page=${pageNum - 1}&size=10`)
+      .then(r => r.json())
+      .then(d => {
+        const reviewList = d.content || (Array.isArray(d) ? d : []);
+        setReviews(reviewList);
+        const total = d.page
+          ? (d.page.totalElements || 0)
+          : (d.totalElements !== undefined ? d.totalElements : reviewList.length);
+        setTotalReviews(total);
+        const pages = d.page ? (d.page.totalPages || 1) : (d.totalPages || 1);
+        setReviewsTotalPages(pages);
+      })
+      .catch(err => console.error("Error fetching reviews", err));
+  };
+
   useEffect(() => {
     if (!data?.id) return;
+    fetchReviews(data.id, reviewsCurrentPage);
+  }, [data?.id, reviewsCurrentPage]);
 
-    fetch(`http://localhost:8889/api/reviews/hotel/${data.id}`)
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setReviews(d); })
-      .catch(err => console.error("Error fetching reviews", err));
+  useEffect(() => {
+    if (data?.id && appliedSearch.checkIn && appliedSearch.checkOut) {
+      fetchDiscountedPrices(data.id, appliedSearch.checkIn, appliedSearch.checkOut);
+    } else {
+      setDiscountedPrices({});
+    }
+  }, [data?.id, appliedSearch.checkIn, appliedSearch.checkOut]);
+
+  useEffect(() => {
+    if (!data?.id) return;
 
     fetch(`http://localhost:8889/api/room/hotel/${data.id}`)
       .then(r => r.json())
@@ -171,13 +288,13 @@ export default function InfoHotel({ data }) {
 
   if (!data) return null;
 
-  const hotelName   = data.name        || "Tên khách sạn";
-  const star        = data.star        || 0;
-  const ratingAvg   = data.rating_avg  || 0;
-  const address     = [data.district, data.city, data.country].filter(Boolean).join(", ");
-  const description = data.description || "";
-  const amenitiesList = data.amenities || [];
-  const images      = data.images      || [];
+  const hotelName     = data.name        || "Tên khách sạn";
+  const star          = data.star        || 0;
+  const ratingAvg     = data.rating_avg  || 0;
+  const address       = [data.district, data.city, data.country].filter(Boolean).join(", ");
+  const description   = data.description || "";
+  const amenitiesList = data.amenities   || [];
+  const images        = data.images      || [];
 
   const mainImage  = images[0] || null;
   const subImage1  = images[1] || null;
@@ -242,7 +359,6 @@ export default function InfoHotel({ data }) {
         {/* ── Body ── */}
         <div className="hc-body">
 
-          {/* Description */}
           <div className="hc-description">
             {description
               ? description.split('\n').map((para, idx) => <p key={idx}>{para}</p>)
@@ -259,15 +375,14 @@ export default function InfoHotel({ data }) {
               <div className="hc-score-meta">
                 <div className="hc-score-label">{ratingLabel}</div>
                 <div className="hc-score-count">
-                  {totalReview > 0
-                    ? `${totalReview} đánh giá · Nhấn để xem tất cả`
+                  {totalReviews > 0
+                    ? `${totalReviews} đánh giá · Nhấn để xem tất cả`
                     : "Chưa có đánh giá · Nhấn để xem"}
                 </div>
               </div>
               <div className="hc-score-chevron">›</div>
             </div>
 
-            {/* Preview 3 reviews */}
             <div className="hc-review-list-preview">
               {reviews.length > 0 ? reviews.slice(0, 3).map((review, i) => (
                 <div key={i} className="hc-review-item-preview">
@@ -288,9 +403,9 @@ export default function InfoHotel({ data }) {
               )) : (
                 <div className="hc-no-review">Chưa có đánh giá nào.</div>
               )}
-              {reviews.length > 3 && (
+              {totalReviews > 3 && (
                 <div className="hc-review-more-hint">
-                  + {reviews.length - 3} đánh giá khác →
+                  + {totalReviews - 3} đánh giá khác →
                 </div>
               )}
             </div>
@@ -347,18 +462,16 @@ export default function InfoHotel({ data }) {
               )}
             </div>
 
-            <button className="hc-search-booking-btn" onClick={handleSearchRooms}>Tìm</button>
+            <button className="hc-search-booking-btn" onClick={handleSearchRooms}>
+              {filterLoading ? "Đang tìm..." : "Tìm"}
+            </button>
           </div>
 
           <div className="hc-room-list">
-            {filteredRooms.length > 0 ? filteredRooms.map(room => {
-              const promo = promotions.find(p => p.roomId === room.id);
-              const discountedPrice = promo
-                ? room.pricePerNight - (room.pricePerNight * promo.discountPercentage / 100)
-                : room.pricePerNight;
-              const totalPrice = discountedPrice * appliedSearch.roomCount * numberOfNights;
-              const originalTotal = room.pricePerNight * appliedSearch.roomCount * numberOfNights;
-              const fmt = (n) => new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(n);
+            {filterLoading ? (
+              <div style={{ padding:20, textAlign:'center', color:'#666' }}>Đang tải phòng...</div>
+            ) : filteredRooms.length > 0 ? filteredRooms.map(room => {
+              const { displayTotal, displayOriginal, hasDiscount, discountPct, nights } = getRoomPricing(room);
 
               return (
                 <div key={room.id} className="hc-room-card-new">
@@ -408,19 +521,19 @@ export default function InfoHotel({ data }) {
                               <span>👤 x{room.capacity}</span>
                             </td>
                             <td className="hc-room-price-cell">
-                              {promo && <div className="hc-sale-badge">Giảm {promo.discountPercentage}%</div>}
-                              {promo && (
-                                <div style={{ textDecoration:'line-through', color:'#999', fontSize:13, marginBottom:2 }}>
-                                  {fmt(originalTotal)}
-                                </div>
+                              {hasDiscount && (
+                                <>
+                                  <div className="hc-sale-badge">Giảm {discountPct}%</div>
+                                  <div style={{ textDecoration:'line-through', color:'#999', fontSize:13, marginBottom:2 }}>
+                                    {fmt(displayOriginal)}
+                                  </div>
+                                </>
                               )}
-                              <div className="hc-new-price">{fmt(totalPrice)}</div>
+                              <div className="hc-new-price">{fmt(displayTotal)}</div>
                               <div className="hc-price-tax">Bao gồm thuế và phí</div>
-                              {numberOfNights > 1 && (
-                                <div style={{ fontSize:12, color:'#666', marginTop:2 }}>
-                                  {numberOfNights} đêm, {appliedSearch.roomCount} phòng
-                                </div>
-                              )}
+                              <div style={{ fontSize:12, color:'#666', marginTop:2 }}>
+                                {nights} đêm · {appliedSearch.roomCount} phòng
+                              </div>
                             </td>
                             <td style={{ textAlign:'center', verticalAlign:'middle' }}>
                               {appliedSearch.roomCount}
@@ -484,23 +597,23 @@ export default function InfoHotel({ data }) {
 
       {/* ── ALL REVIEWS MODAL ── */}
       {showAllReviews && (
-        <div className="hc-modal-overlay" onClick={() => setShowAllReviews(false)}>
+        <div className="hc-modal-overlay" onClick={() => { setShowAllReviews(false); setReviewsCurrentPage(1); }}>
           <div className="hc-modal hc-reviews-modal" onClick={e => e.stopPropagation()}>
             <div className="hc-modal-header">
               <div>
                 <h2 className="hc-modal-title">Đánh giá từ khách hàng</h2>
                 <div style={{ fontSize:13, color:'#888', marginTop:3 }}>
-                  {totalReview} đánh giá · Điểm trung bình: {ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}/10
+                  {totalReviews} đánh giá · Điểm trung bình: {ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}/10
                 </div>
               </div>
-              <button className="hc-modal-close" onClick={() => setShowAllReviews(false)}>&#x2715;</button>
+              <button className="hc-modal-close" onClick={() => { setShowAllReviews(false); setReviewsCurrentPage(1); }}>&#x2715;</button>
             </div>
 
             <div className="hc-reviews-summary">
               <div className="hc-score-badge-lg">{ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}</div>
               <div>
                 <div className="hc-score-verdict">{ratingLabel}</div>
-                <div style={{ fontSize:13, color:'#888', marginTop:3 }}>{totalReview} đánh giá</div>
+                <div style={{ fontSize:13, color:'#888', marginTop:3 }}>{totalReviews} đánh giá</div>
               </div>
             </div>
 
@@ -529,6 +642,62 @@ export default function InfoHotel({ data }) {
                 <div className="hc-no-review">Chưa có đánh giá nào.</div>
               )}
             </div>
+
+            {reviewsTotalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '16px 24px',
+                borderTop: '1px solid #f0f0f0',
+                background: '#fafafa',
+                borderBottomLeftRadius: '12px',
+                borderBottomRightRadius: '12px'
+              }}>
+                <button
+                  disabled={reviewsCurrentPage === 1}
+                  onClick={() => setReviewsCurrentPage(prev => Math.max(prev - 1, 1))}
+                  style={{
+                    padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db',
+                    background: reviewsCurrentPage === 1 ? '#f3f4f6' : '#fff',
+                    color: reviewsCurrentPage === 1 ? '#9ca3af' : '#374151',
+                    cursor: reviewsCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '13px', fontWeight: 500,
+                  }}
+                >
+                  « Trước
+                </button>
+                {Array.from({ length: reviewsTotalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setReviewsCurrentPage(pageNum)}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '6px', border: '1px solid',
+                      borderColor: reviewsCurrentPage === pageNum ? '#003580' : '#d1d5db',
+                      background: reviewsCurrentPage === pageNum ? '#003580' : '#fff',
+                      color: reviewsCurrentPage === pageNum ? '#fff' : '#374151',
+                      cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  disabled={reviewsCurrentPage === reviewsTotalPages}
+                  onClick={() => setReviewsCurrentPage(prev => Math.min(prev + 1, reviewsTotalPages))}
+                  style={{
+                    padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db',
+                    background: reviewsCurrentPage === reviewsTotalPages ? '#f3f4f6' : '#fff',
+                    color: reviewsCurrentPage === reviewsTotalPages ? '#9ca3af' : '#374151',
+                    cursor: reviewsCurrentPage === reviewsTotalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '13px', fontWeight: 500,
+                  }}
+                >
+                  Sau »
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -544,7 +713,6 @@ export default function InfoHotel({ data }) {
               <button className="hc-modal-close" onClick={() => setSelectedRoom(null)}>&#x2715;</button>
             </div>
             <div className="hc-modal-body">
-              {/* LEFT: Image Slider */}
               <div className="hc-modal-imgs">
                 <div className="hc-modal-main-img" style={{ backgroundImage: `url(${selectedRoom.imageUrls?.[imgIndex] || 'https://via.placeholder.com/700x450'})` }}>
                   {(selectedRoom.imageUrls || []).length > 1 && (
@@ -571,7 +739,6 @@ export default function InfoHotel({ data }) {
                 )}
               </div>
 
-              {/* RIGHT: Info Panel */}
               <div className="hc-modal-info">
                 <div className="hc-modal-section">
                   <div className="hc-modal-section-title">Thông tin phòng</div>
@@ -604,7 +771,7 @@ export default function InfoHotel({ data }) {
                 <div className="hc-modal-price-block">
                   <div style={{ fontSize:13, color:'#333', marginBottom:4 }}>Khởi điểm từ:</div>
                   <div style={{ fontSize:22, fontWeight:'bold', color:'#e5464e' }}>
-                    {new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(selectedRoom.pricePerNight)}
+                    {fmt(selectedRoom.pricePerNight)}
                     <span style={{ fontSize:13, fontWeight:'normal', color:'#666' }}> / Phòng / đêm</span>
                   </div>
                   <button className="hc-modal-book-btn">Thêm lựa chọn phòng</button>

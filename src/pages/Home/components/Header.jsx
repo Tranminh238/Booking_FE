@@ -57,6 +57,25 @@ const Header = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
+        // Lấy ngày hiện tại
+    const today = new Date();
+
+    // Ngày mai
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // Ngày kia
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(today.getDate() + 2);
+
+    // Format yyyy-mm-dd
+    const formatDate = (date) => {
+        return date.toISOString().split("T")[0];
+    };
+
+    // Nếu chưa nhập thì tự động set
+    const finalCheckIn = searchData.checkIn || formatDate(tomorrow);
+    const finalCheckOut = searchData.checkOut || formatDate(dayAfterTomorrow);
         
         // Build query string
         const params = new URLSearchParams();
@@ -65,8 +84,8 @@ const Header = () => {
             // the backend filter might need both, but for now we'll pass it as 'keyword' or 'city'
             params.append('keyword', searchData.destination);
         }
-        if (searchData.checkIn) params.append('checkIn', searchData.checkIn);
-        if (searchData.checkOut) params.append('checkOut', searchData.checkOut);
+        if (finalCheckIn) params.append('checkIn', finalCheckIn);
+        if (finalCheckOut) params.append('checkOut', finalCheckOut);
         params.append('adults', searchData.adults);
         params.append('children', searchData.children);
         params.append('num_room', searchData.rooms);

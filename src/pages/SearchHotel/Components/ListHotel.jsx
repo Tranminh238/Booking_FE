@@ -1,6 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { HeartOutlined, HeartFilled } from '@ant-design/icons';
+
+const getTodayAndTomorrow = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    return {
+        today: formatDate(today),
+        tomorrow: formatDate(tomorrow)
+    };
+};
 
 const StarDisplay = ({ star }) => {
     const count = Math.round(star || 0);
@@ -37,8 +55,20 @@ const RatingBadge = ({ rating }) => {
 export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const checkIn = searchParams.get('checkIn') || '';
+    const checkOut = searchParams.get('checkOut') || '';
+
+    const [priceData, setPriceData] = useState(null);
+    const [priceLoading, setPriceLoading] = useState(false);
+
     const mainImage = (hotel.images && hotel.images.length > 0) ? hotel.images[0] : null;
     const fallbackImage = `https://picsum.photos/seed/hotel-${hotel.id}/400/260`;
+    const roomTypes = hotel.roomTypeName
+        ? Array.isArray(hotel.roomTypeName)
+            ? hotel.roomTypeName
+            : hotel.roomTypeName.split(',')
+        : [];
 
     const formatPrice = (price) => {
         if (!price) return null;
@@ -48,6 +78,41 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
     const handleViewDetail = () => {
         navigate(`/hotels/${hotel.id}${location.search}`);
     };
+
+    useEffect(() => {
+        const fetchPrice = async () => {
+            if (!hotel.id) return;
+            
+            let start = checkIn;
+            let end = checkOut;
+            if (!start || !end) {
+                const dates = getTodayAndTomorrow();
+                start = dates.today;
+                end = dates.tomorrow;
+            }
+
+            setPriceLoading(true);
+            try {
+                const res = await fetch(`http://localhost:8889/api/room/hotel/${hotel.id}/discounted-prices?checkIn=${start}&checkOut=${end}`);
+                const json = await res.json();
+                if (json.status === 200 && Array.isArray(json.data) && json.data.length > 0) {
+                    const cheapest = json.data.reduce((min, room) => 
+                        room.discountedTotalPrice < min.discountedTotalPrice ? room : min
+                    , json.data[0]);
+                    setPriceData(cheapest);
+                } else {
+                    setPriceData(null);
+                }
+            } catch (err) {
+                console.error("Error fetching price for hotel:", hotel.id, err);
+                setPriceData(null);
+            } finally {
+                setPriceLoading(false);
+            }
+        };
+
+        fetchPrice();
+    }, [hotel.id, checkIn, checkOut]);
 
     return (
         <div className="hotel-card" onClick={handleViewDetail}>
@@ -90,10 +155,25 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                 <div className="hotel-card-top">
                     <div className="hotel-card-meta">
                         <h3 className="hotel-card-name">{hotel.name}</h3>
-                        <div className="hotel-card-star-row">
-                            <StarDisplay star={hotel.star} />
-                            {hotel.roomTypeName && (
-                                <span className="hotel-card-room-type">{hotel.roomTypeName}</span>
+                        <div className="hotel-card-room-types">
+                            {roomTypes
+                                .map(type => type.trim())
+                                .filter(Boolean)
+                                .slice(0, 3)
+                                .map((type, i) => (
+                                    <span key={i} className="hotel-card-room-type">
+                                        {type}
+                                    </span>
+                                ))}
+
+                            {/* Hiển thị +N nếu có nhiều hơn 3 loại */}
+                            {roomTypes.length > 3 && (
+                                <span className="hotel-card-room-type-more">
+                                    +{(Array.isArray(hotel.roomTypeName)
+                                        ? hotel.roomTypeName
+                                        : hotel.roomTypeName.split(",")
+                                    ).length - 3}
+                                </span>
                             )}
                         </div>
                         {(hotel.city || hotel.district || hotel.country) && (
@@ -124,17 +204,19 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                             )}
                         </div>
                         <div className="hotel-card-price-wrap">
-                            {hotel.roomPricePerNight ? (
+                            {priceLoading ? (
+                                <span className="hotel-card-price-loading" style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic' }}>Đang tải giá...</span>
+                            ) : priceData ? (
                                 <>
-                                    {hotel.originalRoomPricePerNight > hotel.roomPricePerNight && (
+                                    {priceData.hasDiscount && (
                                         <span className="hotel-card-price-original" style={{ textDecoration: 'line-through', color: 'red', fontSize: '14px', marginRight: '6px' }}>
-                                            {formatPrice(hotel.originalRoomPricePerNight)}
+                                            {formatPrice(priceData.originalTotalPrice)}
                                         </span>
                                     )}
                                     <div className="hotel-card-price-row">
-                                        <span className="hotel-card-price">{formatPrice(hotel.roomPricePerNight)}</span>
-                                        <span className="hotel-card-price-unit">/đêm</span>
+                                        <span className="hotel-card-price">{formatPrice(priceData.discountedTotalPrice)}</span>
                                     </div>
+                                    
                                 </>
                             ) : (
                                 <span className="hotel-card-price-na">Liên hệ</span>
@@ -243,6 +325,29 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                }
+                .hotel-card-room-types {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                    margin-bottom: 6px;
+                }
+                .hotel-card-room-type {
+                    font-size: 11px;
+                    background: #eef2ff;
+                    color: #4f46e5;
+                    border-radius: 5px;
+                    padding: 2px 8px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                }
+                .hotel-card-room-type-more {
+                    font-size: 11px;
+                    color: #9ca3af;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 5px;
+                    padding: 2px 7px;
+                    background: #f9fafb;
                 }
                 .hotel-card-star-row {
                     display: flex;
@@ -509,5 +614,4 @@ const ListHotel = ({ hotels, loading, total, page, pageSize, onPageChange }) => 
         </div>
     );
 };
-
 export default ListHotel;

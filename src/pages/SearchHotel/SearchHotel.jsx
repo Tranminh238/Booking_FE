@@ -55,14 +55,18 @@ const SearchHotel = () => {
             size: PAGE_SIZE,
         };
         // From URL (header search) – search by city or hotel name
-        if (searchBarState.destination) {
-            body.city = searchBarState.destination;
-            body.name = searchBarState.destination;
+        if (keyword) {
+            body.city = keyword;
+            body.name = keyword;
         }
-        if (searchBarState.checkIn) body.checkInDate = searchBarState.checkIn;
-        if (searchBarState.checkOut) body.checkOutDate = searchBarState.checkOut;
-        if (searchBarState.adults + searchBarState.children > 0) body.num_guest = searchBarState.adults + searchBarState.children;
-        if (searchBarState.rooms > 0) body.num_room = searchBarState.rooms;
+        if (checkInParam) body.checkInDate = checkInParam;
+        if (checkOutParam) body.checkOutDate = checkOutParam;
+        
+        const totalGuests = (parseInt(adultsParam, 10) || 1) + (parseInt(childrenParam, 10) || 0);
+        if (totalGuests > 0) body.num_guest = totalGuests;
+        
+        const roomsVal = parseInt(numRoom || 1, 10);
+        if (roomsVal > 0) body.num_room = roomsVal;
 
         // From filter sidebar
         if (filters.star) body.star = filters.star;
@@ -80,7 +84,7 @@ const SearchHotel = () => {
         }
 
         return body;
-    }, [searchBarState, filters]);
+    }, [keyword, checkInParam, checkOutParam, adultsParam, childrenParam, numRoom, filters]);
 
     const fetchHotels = useCallback(async (pg = 0) => {
         setLoading(true);
@@ -122,10 +126,10 @@ const SearchHotel = () => {
         });
     }, [keyword, checkInParam, checkOutParam, adultsParam, childrenParam, numRoom]);
 
-    // Fetch when searchBar or filters change
+    // Fetch when filters or search params change (recreated fetchHotels)
     useEffect(() => {
         fetchHotels(0);
-    }, [filters, searchBarState]);
+    }, [fetchHotels]);
 
     const handleFilterChange = (newFilters) => {
         setFilters(newFilters);
@@ -145,8 +149,12 @@ const SearchHotel = () => {
         if (searchBarState.children > 0) params.append('children', searchBarState.children);
         if (searchBarState.rooms > 0) params.append('num_room', searchBarState.rooms);
         if (searchBarState.adults + searchBarState.children > 0) params.append('num_guest', searchBarState.adults + searchBarState.children);
+        
+        const isSame = params.toString() === searchParams.toString();
         setSearchParams(params);
-        fetchHotels(0);
+        if (isSame) {
+            fetchHotels(0);
+        }
     };
 
     const handlePageChange = (pg) => {
@@ -173,9 +181,9 @@ const SearchHotel = () => {
                     {/* Results header */}
                     <div className="search-hotel-results-header">
                         <div>
-                            {searchBarState.destination && (
+                            {keyword && (
                                 <h1 className="search-hotel-title">
-                                    Kết quả tìm kiếm: <span className="search-hotel-keyword">{searchBarState.destination}</span>
+                                    Kết quả tìm kiếm: <span className="search-hotel-keyword">{keyword}</span>
                                 </h1>
                             )}
                             <p className="search-hotel-subtitle">

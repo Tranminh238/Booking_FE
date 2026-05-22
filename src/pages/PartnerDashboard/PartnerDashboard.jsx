@@ -4,6 +4,7 @@ import PropertyList from '../PartnerDashboard/components/PropertyList';
 import BookingList from '../../components/BookingList';
 import StatsGrid from '../PartnerDashboard/components/StatsGrid';
 import CreateHotel from '../PartnerDashboard/components/CreateHotel';
+import Review from '../../components/Review';
 import { HotelProvider, useHotels } from '../../api/HotelContext';
 import './partnerDashboard.css';
 import PartnerNavbar from '../Partner/Components/PartnerNavbar';
@@ -27,6 +28,7 @@ function DashboardContent() {
               </>
             } />
             <Route path="bookings" element={<BookingList />} />
+            <Route path="reviews" element={<Review />} />
             <Route path="*" element={<div style={{ textAlign: 'center', marginTop: '50px' }}>Tính năng đang được phát triển...</div>} />
           </Routes>
         </div>
