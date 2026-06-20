@@ -19,9 +19,11 @@ import MyBookings from './pages/MyBookings/MyBookings';
 import ChangePassword from './pages/ChangePassword/ChangePassword';
 import Wishlist from './components/Wishlist';
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
+import MyMessages from './pages/MyMessages/MyMessages';
+import { App as AntdApp, ConfigProvider } from 'antd';
+import viVN from 'antd/locale/vi_VN';
 
-const App = () => {
-
+const AppContent = () => {
   const location = useLocation();
   const isOwnerPath = location.pathname.includes("owner");
   const isPartnerPath = location.pathname.startsWith("/partner") || location.pathname.includes("-partner");
@@ -48,12 +50,23 @@ const App = () => {
           <Route path='/my-bookings' element={<MyBookings />} />
           <Route path='/change-password' element={<ChangePassword />} />
           <Route path='/my-wishlist' element={<Wishlist />} />
+          <Route path='/my-messages' element={<MyMessages />} />
           <Route path='/forgot-password' element={<ForgotPassword />} />
         </Routes>
       </div>
       {!isOwnerPath && !isPartnerPath && !isAdminPath && <Chatbot />}
     </div>
-  )
-}
+  );
+};
+
+const App = () => (
+  <ConfigProvider locale={viVN}>
+    <AntdApp
+      message={{ maxCount: 3, duration: 3 }}
+    >
+      <AppContent />
+    </AntdApp>
+  </ConfigProvider>
+);
 
 export default App

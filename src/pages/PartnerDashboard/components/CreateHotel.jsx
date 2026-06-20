@@ -458,7 +458,7 @@ function UploadGrid({ data, field, refEl, onChange }) {
 }
 
 // Step 5: Chính sách khách sạn
-function StepPolicy({ data, onChange, onBack, onNext }) {
+function StepPolicy({ data, onChange, onBack, onNext, isEdit }) {
   const cardStyle = {
     background: '#f8faff',
     border: '1.5px solid #dbeafe',
@@ -482,7 +482,7 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
 
   return (
     <form onSubmit={e => { e.preventDefault(); onNext(); }} className="pd-form__inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="pd-form__step-badge">Bước 5 / 6</div>
+      <div className="pd-form__step-badge">{isEdit ? 'Bước 4 / 5' : 'Bước 5 / 6'}</div>
       <h2 className="pd-form__title">Chính sách khách sạn</h2>
       <p className="pd-form__subtitle">Thiết lập các quy định & chính sách cho chỗ nghỉ của bạn</p>
 
@@ -491,10 +491,10 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
 
         {/* Giấy tờ tùy thân - Yes/No toggle */}
         <div style={cardStyle}>
-          <label style={labelStyle}>🪪 Khách cần xuất trình giấy tờ tùy thân khi nhận phòng?</label>
+          <label style={labelStyle}>Khách cần xuất trình giấy tờ tùy thân khi nhận phòng?</label>
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-            {[{ value: 'Có', label: '✅ Có', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
-            { value: 'Không', label: '❌ Không', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+            {[{ value: 'Có', label: 'Có', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+            { value: 'Không', label: 'Không', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
             ].map(opt => {
               const selected = data.identificationDocuments === opt.value;
               return (
@@ -522,7 +522,7 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
 
         {/* Hướng dẫn check-in */}
         <div style={cardStyle}>
-          <label style={labelStyle}>📋 Hướng dẫn nhận phòng</label>
+          <label style={labelStyle}>Hướng dẫn nhận phòng</label>
           <textarea
             className="pd-form__textarea"
             rows={3}
@@ -535,7 +535,7 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
 
         {/* Chính sách hút thuốc */}
         <div style={cardStyle}>
-          <label style={labelStyle}>🚭 Chính sách hút thuốc</label>
+          <label style={labelStyle}>Chính sách hút thuốc</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
             {smokeOptions.map(opt => (
               <label key={opt.value} style={{
@@ -559,8 +559,8 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
         </div>
 
         {/* Chính sách thú cưng */}
-        <div style={{ ...cardStyle, marginBottom: 0 }}>
-          <label style={labelStyle}>🐾 Chính sách thú cưng</label>
+        <div style={cardStyle}>
+          <label style={labelStyle}>Chính sách thú cưng</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
             {petOptions.map(opt => (
               <label key={opt.value} style={{
@@ -583,6 +583,81 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
           </div>
         </div>
 
+        {/* Chính sách hoàn tiền */}
+        <div style={{ ...cardStyle, marginBottom: 0 }}>
+          <label style={labelStyle}>Chính sách hoàn tiền</label>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+            {[{ value: 1, label: 'Có hoàn tiền', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+            { value: 0, label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+            ].map(opt => {
+              const selected = Number(data.isRefund) === opt.value;
+              return (
+                <label key={opt.value} style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: '8px', padding: '12px', borderRadius: '10px', cursor: 'pointer',
+                  border: selected ? `2px solid ${opt.border}` : '1.5px solid #e0e0e0',
+                  background: selected ? opt.bg : '#fafafa',
+                  fontSize: '14px', fontWeight: selected ? 700 : 400,
+                  color: selected ? opt.color : '#555',
+                  transition: 'all 0.15s',
+                }}>
+                  <input
+                    type="radio" name="isRefund" value={opt.value}
+                    checked={selected}
+                    onChange={() => {
+                      onChange('isRefund', opt.value);
+                      if (opt.value === 0) {
+                        onChange('minDateRefund', 0);
+                        onChange('refundPercentage', 0);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                  {opt.label}
+                </label>
+              );
+            })}
+          </div>
+
+          {Number(data.isRefund) === 1 && (
+            <div style={{ marginTop: '16px', display: 'flex', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '12px', color: '#374151', fontWeight: 600, marginBottom: '6px', display: 'block' }}>
+                  Hạn hoàn tiền (số ngày trước khi nhận phòng)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="VD: 3"
+                  value={data.minDateRefund}
+                  onChange={e => onChange('minDateRefund', Math.max(0, parseInt(e.target.value) || 0))}
+                  style={{
+                    width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', color: '#222'
+                  }}
+                />
+                <p style={hintStyle}>Số ngày tối thiểu trước check-in để được hoàn tiền.</p>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '12px', color: '#374151', fontWeight: 600, marginBottom: '6px', display: 'block' }}>
+                  Tỷ lệ hoàn tiền (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="VD: 100"
+                  value={data.refundPercentage}
+                  onChange={e => onChange('refundPercentage', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                  style={{
+                    width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px', color: '#222'
+                  }}
+                />
+                <p style={hintStyle}>Tỷ lệ phần trăm số tiền được hoàn trả.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       <div className="pd-form__actions pd-form__actions--two" style={{ flexShrink: 0 }}>
@@ -593,15 +668,15 @@ function StepPolicy({ data, onChange, onBack, onNext }) {
   );
 }
 
-function StepMedia({ data, onChange, onBack, onSubmit, loading }) {
+function StepMedia({ data, onChange, onBack, onSubmit, loading, isEdit }) {
   const [errors, setErrors] = useState({});
   const imagesRef = React.useRef(null);
   const policyRef = React.useRef(null);
 
   const validate = () => {
     const e = {};
-    if (data.images.length === 0) e.images = 'Vui lòng tải lên ít nhất 1 ảnh';
-    if (data.policyFiles.length === 0) e.policyFiles = 'Vui lòng tải lên giấy tờ xác nhận';
+    if (!isEdit && data.images.length === 0) e.images = 'Vui lòng tải lên ít nhất 1 ảnh';
+    if (!isEdit && data.policyFiles.length === 0) e.policyFiles = 'Vui lòng tải lên giấy tờ xác nhận';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -613,19 +688,21 @@ function StepMedia({ data, onChange, onBack, onSubmit, loading }) {
 
   return (
     <form onSubmit={handleSubmitForm} className="pd-form__inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="pd-form__step-badge">Bước 6 / 6</div>
+      <div className="pd-form__step-badge">{isEdit ? 'Bước 5 / 5' : 'Bước 6 / 6'}</div>
       <h2 className="pd-form__title">Hình ảnh &amp; Giấy tờ</h2>
-      <p className="pd-form__subtitle">Tải lên hình ảnh khách sạn và giấy tờ xác nhận kinh doanh</p>
+      <p className="pd-form__subtitle">{isEdit ? 'Cập nhật giấy tờ xác nhận kinh doanh' : 'Tải lên hình ảnh khách sạn và giấy tờ xác nhận kinh doanh'}</p>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="pd-form__field">
-          <label className="pd-form__label">* Ảnh khách sạn</label>
-          <UploadGrid data={data} field="images" refEl={imagesRef} onChange={onChange} />
-          {errors.images && <span className="pd-form__error" style={{ display: 'block', marginTop: '6px' }}>{errors.images}</span>}
-        </div>
+        {!isEdit && (
+          <div className="pd-form__field">
+            <label className="pd-form__label">* Ảnh khách sạn</label>
+            <UploadGrid data={data} field="images" refEl={imagesRef} onChange={onChange} />
+            {errors.images && <span className="pd-form__error" style={{ display: 'block', marginTop: '6px' }}>{errors.images}</span>}
+          </div>
+        )}
 
         <div className="pd-form__field">
-          <label className="pd-form__label">* Giấy tờ xác nhận kinh doanh</label>
+          <label className="pd-form__label">{isEdit ? 'Giấy tờ xác nhận kinh doanh (Chỉ tải lên khi cần cập nhật)' : '* Giấy tờ xác nhận kinh doanh'}</label>
           <UploadGrid data={data} field="policyFiles" refEl={policyRef} onChange={onChange} />
           {errors.policyFiles && <span className="pd-form__error" style={{ display: 'block', marginTop: '6px' }}>{errors.policyFiles}</span>}
         </div>
@@ -667,6 +744,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
     checkInInstructions: '',
     smokePolicy: 'Cấm hút thuốc hoàn toàn',
     petPolicy: 'Không cho phép thú cưng',
+    isRefund: 0,
+    minDateRefund: 0,
+    refundPercentage: 0,
   });
 
   React.useEffect(() => {
@@ -716,6 +796,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
         checkInInstructions: editHotel.checkInInstructions || '',
         smokePolicy: editHotel.smokePolicy || 'Cấm hút thuốc hoàn toàn',
         petPolicy: editHotel.petPolicy || 'Không cho phép thú cưng',
+        isRefund: editHotel.isRefund !== undefined && editHotel.isRefund !== null ? Number(editHotel.isRefund) : 0,
+        minDateRefund: editHotel.minDateRefund || 0,
+        refundPercentage: editHotel.refundPercentage || 0,
       });
     }
   }, [editHotel, amenitiesList]);
@@ -742,6 +825,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
       checkInInstructions: '',
       smokePolicy: 'Cấm hút thuốc hoàn toàn',
       petPolicy: 'Không cho phép thú cưng',
+      isRefund: 0,
+      minDateRefund: 0,
+      refundPercentage: 0,
     });
     if (onCloseEdit) onCloseEdit();
   };
@@ -766,12 +852,21 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
       if (policyData.checkInInstructions) formData.append('checkInInstructions', policyData.checkInInstructions);
       if (policyData.smokePolicy) formData.append('smokePolicy', policyData.smokePolicy);
       if (policyData.petPolicy) formData.append('petPolicy', policyData.petPolicy);
-
-      mediaData.amenities.forEach(id => formData.append('amenityIds', id));
-      mediaData.images.forEach(file => formData.append('images', file));
-      mediaData.policyFiles.forEach(file => formData.append('policyFiles', file));
+      formData.append('isRefund', Number(policyData.isRefund));
+      formData.append('minDateRefund', Number(policyData.minDateRefund));
+      formData.append('refundPercentage', Number(policyData.refundPercentage));
 
       const isEdit = !!editHotel;
+      
+      // Only append amenities and hotel images if NOT in edit mode
+      if (!isEdit) {
+        mediaData.amenities.forEach(id => formData.append('amenityIds', id));
+        mediaData.images.forEach(file => formData.append('images', file));
+      }
+      
+      // Always allow policy license files upload
+      mediaData.policyFiles.forEach(file => formData.append('policyFiles', file));
+
       const url = isEdit
         ? `http://localhost:8889/api/hotel/update/${editHotel.id}`
         : 'http://localhost:8889/api/hotel/create';
@@ -832,7 +927,11 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
             <div className="pd-form__progress">
               <div
                 className="pd-form__progress-bar"
-                style={{ width: step === 1 ? '17%' : step === 2 ? '33%' : step === 3 ? '50%' : step === 4 ? '67%' : step === 5 ? '83%' : '100%' }}
+                style={{
+                  width: !!editHotel
+                    ? (step === 1 ? '20%' : step === 2 ? '40%' : step === 3 ? '60%' : step === 5 ? '80%' : '100%')
+                    : (step === 1 ? '17%' : step === 2 ? '33%' : step === 3 ? '50%' : step === 4 ? '67%' : step === 5 ? '83%' : '100%')
+                }}
               />
             </div>
 
@@ -861,7 +960,7 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
                 data={hotelData}
                 onChange={handleHotelChange}
                 onBack={() => setStep(2)}
-                onNext={() => setStep(4)}
+                onNext={() => setStep(!!editHotel ? 5 : 4)}
               />
             ) : step === 4 ? (
               <StepAmenities
@@ -875,8 +974,9 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
               <StepPolicy
                 data={policyData}
                 onChange={handlePolicyChange}
-                onBack={() => setStep(4)}
+                onBack={() => setStep(!!editHotel ? 3 : 4)}
                 onNext={() => setStep(6)}
+                isEdit={!!editHotel}
               />
             ) : (
               <StepMedia
@@ -885,6 +985,7 @@ export default function CreateHotel({ editHotel = null, onCloseEdit = null }) {
                 onBack={() => setStep(5)}
                 onSubmit={handleSubmit}
                 loading={loading}
+                isEdit={!!editHotel}
               />
             )}
           </div>

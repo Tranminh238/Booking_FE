@@ -43,7 +43,9 @@ function useToast() {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 10;
-const BASE = "http://localhost:8889/auth";
+const BASE2 = "http://localhost:8889/account";
+const BASE = "http://localhost:8889/users";
+
 
 const TABS = [
   { key: "all",      label: "Tất cả",         endpoint: "/all-user" },
@@ -176,12 +178,17 @@ export default function UserList() {
   const handleDelete = async (user) => {
     setActionLoading(user.id);
     try {
-      const res  = await fetch(`${BASE}/delete/${user.id}`, { method: "POST" });
-      const data = await res.json();
-      if (data.code === 200) {
-        toast(`Đã vô hiệu tài khoản "${user.name || user.email}".`, "success");
-        fetchUsers(page);
-      } else throw new Error(data.message);
+      const res = await fetch(`${BASE2}/delete/${user.id}`, { method: "POST" });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+
+      // ← Thêm check này
+      if (!res.ok || data.status !== 200) {
+        throw new Error(data.message || "Vô hiệu tài khoản thất bại.");
+      }
+
+      toast(`Đã vô hiệu tài khoản "${user.name || user.email}".`, "success");
+      fetchUsers(page);
     } catch (err) {
       toast(err.message || "Vô hiệu tài khoản thất bại.", "error");
     } finally {
@@ -191,13 +198,26 @@ export default function UserList() {
 
   const handleRestore = async (user) => {
     setActionLoading(user.id);
+
     try {
-      const res  = await fetch(`${BASE}/restore/${user.id}`, { method: "POST" });
-      const data = await res.json();
-      if (data.code === 200) {
+      const res = await fetch(`${BASE2}/restore/${user.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+
+      if (res.ok) {
         toast(`Đã khôi phục tài khoản "${user.name || user.email}".`, "success");
         fetchUsers(page);
-      } else throw new Error(data.message);
+      } else {
+        throw new Error(data.message || "Khôi phục tài khoản thất bại.");
+      }
+    } catch (err) {
+      toast(err.message || "Khôi phục tài khoản thất bại.", "error");
     } finally {
       setActionLoading(null);
     }
@@ -303,7 +323,7 @@ export default function UserList() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {filtered.map((user) => {
-                      const isDeleted = !!user.deletedAt || user.status === "INACTIVE" || user.active === false;
+                      const isDeleted = user.isDeleted === 1;
                       const busy = actionLoading === user.id;
                       return (
                         <tr key={user.id} className="hover:bg-slate-50/60 transition-colors group">

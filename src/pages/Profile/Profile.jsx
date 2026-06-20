@@ -33,7 +33,7 @@ const Profile = () => {
                 return;
             }
             try {
-                const res = await fetch(`http://localhost:8889/client/info/${userId}`);
+                const res = await fetch(`http://localhost:8889/account/info/${userId}`);
                 const data = await res.json();
                 if (data.status === 200 && data.data) {
                     const d = data.data;
@@ -72,35 +72,50 @@ const Profile = () => {
 
     const handleSave = async () => {
         if (!userId) return;
+
         setSaving(true);
+
         try {
             const payload = {
                 userId: Number(userId),
                 firstName: form.firstName,
                 lastName: form.lastName,
                 phoneNumber: form.phoneNumber,
-                address: form.address,
                 dateOfBirth: form.dateOfBirth || null,
                 gender: form.gender,
                 nationality: form.nationality,
             };
-            const res = await fetch("http://localhost:8889/client/edit-info", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+
+            const res = await fetch("http://localhost:8889/account/edit-info", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(payload),
             });
+
             const data = await res.json();
-            if (data.status === 200) {
-                showToast("Cập nhật thông tin thành công!");
-                sessionStorage.setItem("firstName", form.firstName);
-                sessionStorage.setItem("lastName", form.lastName);
-                setIsEditing(false);
-            } else {
-                showToast(data.message || "Có lỗi xảy ra!", "error");
+
+            // Nếu backend trả lỗi
+            if (!res.ok || data.status !== 200) {
+                showToast(data.message || "Cập nhật thất bại!", "error");
+                return;
             }
+
+            // Success
+            showToast("Cập nhật thông tin thành công!");
+
+            sessionStorage.setItem("firstName", form.firstName);
+            sessionStorage.setItem("lastName", form.lastName);
+
+            setIsEditing(false);
+
         } catch (err) {
             console.error(err);
-            showToast("Lỗi kết nối server.", "error");
+
+            // Mất kết nối server / backend chưa chạy
+            showToast("Không thể kết nối đến server!", "error");
+
         } finally {
             setSaving(false);
         }
@@ -111,7 +126,7 @@ const Profile = () => {
         setIsEditing(false);
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:8889/client/info/${userId}`);
+            const res = await fetch(`http://localhost:8889/account/info/${userId}`);
             const data = await res.json();
             if (data.status === 200 && data.data) {
                 const d = data.data;

@@ -52,8 +52,8 @@ const Navbar = () => {
                 <img className="h-9" src={logo} alt="Hotel Logo" />
             </Link>
             <div className="hidden sm:flex items-center gap-8">
-                <Link to="/">Trang Chủ</Link>
-                <Link to="/partner">Đăng chỗ nghỉ của bạn</Link>
+                <Link to="/" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Trang Chủ</Link>
+                <Link to="/partner" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Đăng chỗ nghỉ của bạn</Link>
 
                 {isAuthenticated ? (
                     <div className="relative" ref={profileMenuRef}>
@@ -80,7 +80,7 @@ const Navbar = () => {
                                 </div>
 
                                 {/* Menu items */}
-                                <div className="py-1">
+                                <div className="py-1 text-black">
                                     <Link
                                         to="/profile"
                                         onClick={() => setIsProfileMenuOpen(false)}
@@ -104,7 +104,18 @@ const Navbar = () => {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                             </svg>
                                         </span>
-                                        Quản lý chỗ nghỉ
+                                        Quản lý đặt phòng
+                                    </Link>
+                                    <Link
+                                        to="/my-messages"
+                                        onClick={() => setIsProfileMenuOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-150 group">
+                                        <span className="w-8 h-8 rounded-lg bg-blue-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                                            <svg className="w-4 h-4 text-blue-500 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </span>
+                                        Quản lý tin nhắn
                                     </Link>
 
                                     <Link
@@ -152,7 +163,10 @@ const Navbar = () => {
                         )}
                     </div>
                 ) : (
-                    <Link to="/login" className="cursor-pointer px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-block text-center">
+                    <Link
+                        to="/login"
+                        className="cursor-pointer px-6 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full inline-flex items-center justify-center gap-2"
+                    >
                         Đăng Nhập
                     </Link>
                 )}

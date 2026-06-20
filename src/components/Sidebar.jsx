@@ -10,6 +10,8 @@ export default function Sidebar({ role }) {
     { label: 'Quản lý khách sạn', path: '/admin-dashboard/hotels' },
     { label: 'Quản lý đặt phòng', path: '/admin-dashboard/bookings' },
     { label: 'Quản lý đánh giá', path: '/admin-dashboard/reviews' },
+    { label: 'Quản lý tiện ích', path: '/admin-dashboard/amenities'},
+    { label: 'Quản lý loại phòng', path: '/admin-dashboard/room-types'}
   ];
 
   const partnerMenu = [
@@ -17,7 +19,7 @@ export default function Sidebar({ role }) {
     { label: 'Quản lý khách sạn', path: '/partner-dashboard/my-hotels' },
     { label: 'Quản lý đặt phòng', path: '/partner-dashboard/bookings' },
     { label: 'Quản lý Đánh giá', path: '/partner-dashboard/reviews' },
-    { label: 'Hồ sơ', path: '/partner-dashboard/profile' },
+    { label: 'Tin nhắn', path: '/partner-dashboard/messages' },
   ];
 
   const currentRole = role || sessionStorage.getItem('role') || sessionStorage.getItem('admin_role') || (sessionStorage.getItem('partner_userId') ? 'partner' : null);
@@ -41,9 +43,9 @@ export default function Sidebar({ role }) {
             <Link
               key={idx}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${isActive
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600'
+              className={`flex items-center gap-3 px-4 py-3 border border-slate-100 rounded-lg transition-colors font-normal ${isActive
+                ? 'bg-indigo-50 text-indigo-700'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600'
                 }`}
             >
               <span className="text-xl">{item.icon}</span>

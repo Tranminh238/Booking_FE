@@ -4,6 +4,32 @@ import { useHotels } from '../api/HotelContext';
 /* ─────────────────────────── Toast Component ─────────────────────────── */
 function Toast({ toast }) {
   if (!toast) return null;
+
+  if (toast.type === 'confirm') {
+    return (
+      <div style={{
+        position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+        padding: '16px 24px', borderRadius: '10px', fontWeight: 500, fontSize: '14px',
+        background: '#fff', color: '#333', boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        animation: 'fadeInDown 0.3s ease', border: '1px solid #e5e7eb',
+        minWidth: '300px', fontFamily: "'Be Vietnam Pro', sans-serif"
+      }}>
+        <div style={{ marginBottom: '10px', fontWeight: 700, fontSize: '15px' }}>⚠️ Xác nhận</div>
+        <div style={{ marginBottom: '16px', lineHeight: 1.5 }}>{toast.msg}</div>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={toast.onCancel}
+            style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+          >Hủy</button>
+          <button
+            onClick={toast.onConfirm}
+            style={{ padding: '6px 14px', borderRadius: '6px', border: 'none', background: '#dc2626', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+          >Xóa</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
@@ -127,38 +153,42 @@ export default function Review() {
   }, [totalPages, currentPage]);
 
   // Xóa đánh giá (chỉ dành cho Admin)
-  const handleDeleteReview = async (bookingId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.')) {
-      return;
-    }
+  const handleDeleteReview = (bookingId) => {
+    setToast({
+      type: 'confirm',
+      msg: 'Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.',
+      onCancel: () => setToast(null),
+      onConfirm: async () => {
+        setToast(null);
+        try {
+          const res = await fetch(`http://localhost:8889/api/reviews/delete/${bookingId}`, {
+            method: 'DELETE'
+          });
 
-    try {
-      const res = await fetch(`http://localhost:8889/api/reviews/delete/${bookingId}`, {
-        method: 'DELETE'
-      });
-
-      if (res.ok) {
-        showToastMsg('success', 'Xóa đánh giá thành công!');
-        // Tải lại danh sách đánh giá của khách sạn hiện tại
-        if (selectedHotel) {
-          loadReviewsForHotel(selectedHotel.id);
-          // Cập nhật lại số lượng đánh giá tổng quan
-          const totalRes = await fetch(`http://localhost:8889/api/reviews/total/${selectedHotel.id}`);
-          if (totalRes.ok) {
-            const count = await totalRes.json();
-            setReviewCounts(prev => ({ ...prev, [selectedHotel.id]: count }));
+          if (res.ok) {
+            showToastMsg('success', 'Xóa đánh giá thành công!');
+            // Tải lại danh sách đánh giá của khách sạn hiện tại
+            if (selectedHotel) {
+              loadReviewsForHotel(selectedHotel.id);
+              // Cập nhật lại số lượng đánh giá tổng quan
+              const totalRes = await fetch(`http://localhost:8889/api/reviews/total/${selectedHotel.id}`);
+              if (totalRes.ok) {
+                const count = await totalRes.json();
+                setReviewCounts(prev => ({ ...prev, [selectedHotel.id]: count }));
+              }
+            }
+            // Gọi fetchHotels để đồng bộ lại dữ liệu Context nếu cần
+            fetchHotels();
+          } else {
+            const errorText = await res.text();
+            showToastMsg('error', errorText || 'Xóa đánh giá thất bại.');
           }
+        } catch (err) {
+          console.error(err);
+          showToastMsg('error', 'Lỗi kết nối khi xóa đánh giá.');
         }
-        // Gọi fetchHotels để đồng bộ lại dữ liệu Context nếu cần
-        fetchHotels();
-      } else {
-        const errorText = await res.text();
-        showToastMsg('error', errorText || 'Xóa đánh giá thất bại.');
-      }
-    } catch (err) {
-      console.error(err);
-      showToastMsg('error', 'Lỗi kết nối khi xóa đánh giá.');
-    }
+      },
+    });
   };
 
   // Lọc danh sách khách sạn theo từ khóa tìm kiếm
@@ -187,7 +217,7 @@ export default function Review() {
       {/* Tiêu đề & mô tả */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#1a1a2e', margin: 0 }}>
-          💬 Quản lý Đánh giá
+          Quản lý Đánh giá
         </h1>
         <p style={{ color: '#6b7280', margin: '4px 0 0', fontSize: '14px' }}>
           {isAdmin 
@@ -468,7 +498,7 @@ export default function Review() {
                           </div>
 
                           {/* Nút xóa đánh giá (Chỉ Admin) */}
-                          {isAdmin && (
+                          {role == 'PARTNER' && (
                             <div style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
                               <button
                                 onClick={() => handleDeleteReview(r.bookingId)}

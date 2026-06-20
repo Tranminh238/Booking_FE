@@ -1,61 +1,64 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PopularDestinations.css';
 
 const PopularDestinations = () => {
-  const [activeTab, setActiveTab] = useState('Thành phố trong nước');
-
-  const tabs = [
-    'Thành phố trong nước',
-    'Thành phố nước ngoài',
-    'Khu vực',
-    'Quốc gia',
-    'Chỗ nghỉ'
-  ];
+  const navigate = useNavigate();
 
   const destinationsCol1 = [
-    "Khách sạn TP. Hồ Chí Minh", "Khách sạn Phú Quốc", "Khách sạn Thành phố Hải Phòng", "Khách sạn Tam Đảo", "Khách sạn Cần Thơ", "Khách sạn Tánh Linh", "Khách sạn Mỹ Tho", "Khách sạn Điện Biên Phủ", "Khách sạn Quy Nhơn"
+    "Hồ Chí Minh", "Phú Quốc", "Thành phố Hải Phòng", "Tam Đảo", "Cần Thơ", "Tánh Linh", "Mỹ Tho", "Điện Biên Phủ", "Quy Nhơn"
   ];
   
   const destinationsCol2 = [
-    "Khách sạn Vũng Tàu", "Khách sạn Nha Trang", "Khách sạn Mai Châu", "Khách sạn Cao Lãnh", "Khách sạn Bến Tre", "Khách sạn Ninh Bình", "Khách sạn Diên Khánh", "Khách sạn Bến Cát", "Khách sạn Bạc Liêu"
+    "Vũng Tàu", "Nha Trang", "Mai Châu", "Cao Lãnh", "Bến Tre", "Ninh Bình", "Diên Khánh", "Bến Cát", "Bạc Liêu"
   ];
   
   const destinationsCol3 = [
-    "Khách sạn Hà Nội", "Khách sạn Huế", "Khách sạn Hà Tiên", "Khách sạn Vĩnh Phúc", "Khách sạn Buôn Ma Thuột", "Khách sạn Đồng Văn", "Khách sạn Rạch Giá", "Khách sạn Phong Nha"
+    "Hà Nội", "Huế", "Hà Tiên", "Vĩnh Phúc", "Buôn Ma Thuột", "Đồng Văn", "Rạch Giá", "Phong Nha"
   ];
   
   const destinationsCol4 = [
-    "Khách sạn Đà Nẵng", "Khách sạn Mũi Né", "Khách sạn Tuần Châu", "Khách sạn Châu Đốc", "Khách sạn Mộc Châu", "Khách sạn Phan Thiết", "Khách sạn Vĩnh Long", "Khách sạn Đồng Hới"
+    "Đà Nẵng", "Mũi Né", "Tuần Châu", "Châu Đốc", "Mộc Châu", "Phan Thiết", "Vĩnh Long", "Đồng Hới"
   ];
   
   const destinationsCol5 = [
-    "Khách sạn Đà Lạt", "Khách sạn Sa Pa", "Khách sạn Hội An", "Khách sạn Đảo Cát Bà", "Khách sạn Thanh Khê", "Khách sạn Hương Tân Lạc", "Khách sạn Bình Sum", "Khách sạn Tây Ninh"
+    "Đà Lạt", "Sa Pa", "Hội An", "Đảo Cát Bà", "Thanh Khê", "Hương Tân Lạc", "Bình Sum", "Tây Ninh"
   ];
 
   const columns = [destinationsCol1, destinationsCol2, destinationsCol3, destinationsCol4, destinationsCol5];
 
+  const handleDestinationClick = (e, item) => {
+    e.preventDefault();
+    navigate(`/hotels?keyword=${encodeURIComponent(item)}`);
+  };
+
+  const formatDisplayName = (item) => {
+    // Tránh thêm trùng lặp chữ "Thành phố" hay "TP."
+    if (
+      item.startsWith("Thành phố") || 
+      item.startsWith("TP.") || 
+      item.startsWith("Đảo") || 
+      item === "Phú Quốc"
+    ) {
+      return item;
+    }
+    return `Thành phố ${item}`;
+  };
+
   return (
     <div className="popular-destinations">
       <h2>Phổ biến với du khách từ Việt Nam</h2>
-      
-      <div className="popular-tabs">
-        {tabs.map((tab, index) => (
-          <button 
-            key={index} 
-            className={`popular-tab ${activeTab === tab ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
       <div className="destinations-grid">
         {columns.map((col, i) => (
           <div key={i} className="destination-column">
             {col.map((item, j) => (
-              <a href="#" key={j} className="destination-item">
-                {item}
+              <a 
+                href="#" 
+                key={j} 
+                className="destination-item"
+                onClick={(e) => handleDestinationClick(e, item)}
+              >
+                {formatDisplayName(item)}
               </a>
             ))}
           </div>

@@ -31,6 +31,11 @@ const Register = () => {
   // submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.password.length < 8) {
+      setToastType("error");
+      setToastMessage("Password phải có ít nhất 8 ký tự");
+      return;
+    }
 
     // validate đơn giản
     if (formData.password !== formData.confirmPassword) {
@@ -40,34 +45,41 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8889/client/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phoneNumber: formData.phoneNumber
-        })
-      });
+    const response = await fetch("http://localhost:8889/account/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber
+      })
+    });
 
-      const data = await response.json();
+    const text = await response.text();
 
+    console.log("RAW RESPONSE:", text);
 
-      if (data.status === 200) {
-        setToastType("success");
-        setToastMessage("Đăng ký thành công!");
-      } else {
-        setToastType("error");
-        setToastMessage(data.message || "Tài khoản đã tồn tại hoặc có lỗi xảy ra!");
-      }
-    } catch (error) {
+    const data = JSON.parse(text);
+
+    if (data.status === 200) {
+      setToastType("success");
+      setToastMessage("Đăng ký thành công!");
+    } else {
       setToastType("error");
-      setToastMessage("Không thể kết nối tới Server1!");
-      console.error(error);
+      setToastMessage(data.message);
     }
+
+  } catch (error) {
+    console.error(error);
+
+    setToastType("error");
+    setToastMessage(error.message);
+  }
   };
 
   return (

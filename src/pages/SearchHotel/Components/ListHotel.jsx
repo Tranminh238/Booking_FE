@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { HeartOutlined, HeartFilled } from '@ant-design/icons';
+import { message } from 'antd';
+import { FaLocationDot } from "react-icons/fa6";
 
 const getTodayAndTomorrow = () => {
     const today = new Date();
@@ -129,12 +131,6 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                         ⭐ Nổi bật
                     </div>
                 )}
-                {/* Image count */}
-                {hotel.images && hotel.images.length > 1 && (
-                    <div className="hotel-card-img-count">
-                        📷 {hotel.images.length}
-                    </div>
-                )}
                 {/* Heart Button */}
                 {onWishlistToggle && (
                     <button
@@ -155,6 +151,9 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                 <div className="hotel-card-top">
                     <div className="hotel-card-meta">
                         <h3 className="hotel-card-name">{hotel.name}</h3>
+                        <div className="hotel-card-star-row">
+                            <StarDisplay star={hotel.star} />
+                        </div>
                         <div className="hotel-card-room-types">
                             {roomTypes
                                 .map(type => type.trim())
@@ -178,7 +177,7 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                         </div>
                         {(hotel.city || hotel.district || hotel.country) && (
                             <p className="hotel-card-location">
-                                📍 {[hotel.district, hotel.city, hotel.country].filter(Boolean).join(', ')}
+                                <FaLocationDot /> {[hotel.city, hotel.country].filter(Boolean).join(', ')}
                             </p>
                         )}
                         {hotel.amenities && hotel.amenities.length > 0 && (
@@ -232,6 +231,8 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
             <style>{`
                 .hotel-card {
                     display: flex;
+                    height: 190px;
+                    min-height: 190px;
                     background: #fff;
                     border-radius: 14px;
                     box-shadow: 0 2px 12px rgba(0,0,0,0.07);
@@ -326,6 +327,12 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                     text-overflow: ellipsis;
                     white-space: nowrap;
                 }
+                
+                    .hotel-card-star-text {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #374151;
+                    }
                 .hotel-card-room-types {
                     display: flex;
                     flex-wrap: wrap;
@@ -364,6 +371,9 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                     font-weight: 600;
                 }
                 .hotel-card-location {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
                     font-size: 13px;
                     color: #6b7280;
                     margin: 0 0 8px 0;
@@ -373,7 +383,7 @@ export const HotelCard = ({ hotel, isWishlisted, onWishlistToggle }) => {
                 }
                 .hotel-card-amenities {
                     display: flex;
-                    flex-wrap: wrap;
+                    flex-wrap: nowrap;
                     gap: 5px;
                     margin-top: 6px;
                 }
@@ -489,7 +499,7 @@ const ListHotel = ({ hotels, loading, total, page, pageSize, onPageChange }) => 
     const handleWishlistToggle = async (e, hotelId) => {
         e.stopPropagation();
         if (!userId) {
-            alert("Vui lòng đăng nhập để lưu khách sạn yêu thích!");
+            message.warning('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
             return;
         }
         try {

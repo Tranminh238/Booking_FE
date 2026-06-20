@@ -12,7 +12,7 @@ const PartnerLogin = () => {
         e.preventDefault();
 
         try {
-            const response = await fetch("http://localhost:8889/auth/login-partner", {
+            const response = await fetch("http://localhost:8889/users/login-partner", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

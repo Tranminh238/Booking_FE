@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 // ── Toast System ──────────────────────────────────────────────────────
 let toastIdCounter = 0;
@@ -174,9 +175,9 @@ function useToast() {
 
   const toast = {
     success: (message, title = 'Thành công') => addToast({ type: 'success', title, message }),
-    error:   (message, title = 'Lỗi')        => addToast({ type: 'error',   title, message, duration: 5000 }),
-    warning: (message, title = 'Cảnh báo')  => addToast({ type: 'warning', title, message }),
-    info:    (message, title = '')           => addToast({ type: 'info',    title, message }),
+    error: (message, title = 'Lỗi') => addToast({ type: 'error', title, message, duration: 5000 }),
+    warning: (message, title = 'Cảnh báo') => addToast({ type: 'warning', title, message }),
+    info: (message, title = '') => addToast({ type: 'info', title, message }),
     confirm: (message, onConfirm, options = {}) =>
       addToast({
         type: 'confirm',
@@ -204,16 +205,19 @@ const formatDate = (dateString) => {
 };
 
 const BOOKING_STATUS_TABS = [
-  { key: 'all', label: 'Tất cả',        color: '#6b7280', bg: '#f3f4f6' },
-  { key: 1,     label: 'Chờ xác nhận', color: '#b45309', bg: '#fef3c7' },
-  { key: 2,     label: 'Đã xác nhận',  color: '#16a34a', bg: '#dcfce7' },
-  { key: 3,     label: 'Hoàn thành',   color: '#1e40af', bg: '#dbeafe' },
-  { key: 0,     label: 'Đã huỷ',       color: '#991b1b', bg: '#fee2e2' },
+  { key: 'all', label: 'Tất cả', color: '#6b7280', bg: '#f3f4f6' },
+  { key: 1, label: 'Chờ xác nhận', color: '#b45309', bg: '#fef3c7' },
+  { key: 2, label: 'Đã xác nhận', color: '#16a34a', bg: '#dcfce7' },
+  { key: 5, label: 'Từ chối', color: '#bf6f6b', bg: '#fee2e2' },
+  { key: 3, label: 'Hoàn thành', color: '#1e40af', bg: '#dbeafe' },
+  { key: 4, label: 'Yêu cầu huỷ', color: '#1e40af', bg: '#dbeafe' },
+  { key: 0, label: 'Đã huỷ', color: '#991b1b', bg: '#fee2e2' },
 ];
 
 const PAYMENT_STATUS = {
   1: { label: 'Chưa thanh toán', color: '#b45309', bg: '#fef3c7' },
-  2: { label: 'Đã thanh toán',   color: '#16a34a', bg: '#dcfce7' },
+  2: { label: 'Đã thanh toán', color: '#16a34a', bg: '#dcfce7' },
+  3: { label: 'Đã hoàn tiền', color: '#7c3aed', bg: '#ede9fe' },
 };
 
 const PaymentBadge = ({ status }) => {
@@ -232,76 +236,99 @@ const PaymentBadge = ({ status }) => {
 
 // ── Main Component ────────────────────────────────────────────────────
 export default function BookingList() {
-  const [bookings, setBookings]   = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
-  const [search, setSearch]       = useState('');
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
   const { toasts, removeToast, toast } = useToast();
 
-  const role   = sessionStorage.getItem('partner_role') || sessionStorage.getItem('role');
+  const role = sessionStorage.getItem('partner_role') || sessionStorage.getItem('role');
   const userId = sessionStorage.getItem('partner_userId');
 
-  // ── Fetch ─────────────────────────────────────────────────────────
+  // ── Đọc refundResult từ URL params khi redirect về sau hoàn tiền ──
+  const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
-    const fetchBookings = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        let url = '';
-        if (role === 'ADMIN') {
-          url = 'http://localhost:8889/api/booking/all';
-        } else {
-          if (!userId) {
-            setError('Không tìm thấy thông tin đối tác.');
-            setLoading(false);
-            return;
-          }
-          url = `http://localhost:8889/api/booking/partner/${userId}`;
-        }
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('Lỗi khi tải dữ liệu đặt phòng');
-        const data = await res.json();
-
-        const parseBookings = (list) =>
-          list.map((item) => ({
-            id:            item.id,
-            firstName:     item.firstName,
-            lastName:      item.lastName,
-            email:         item.email || item.contactEmail,
-            phone:         item.phone || item.contactPhone,
-            hotelName:     item.hotelName,
-            roomTypeName:  item.roomTypeName,
-            checkIn:       item.checkInDate,
-            checkOut:      item.checkOutDate,
-            totalPrice:    item.totalPrice,
-            paymentStatus: item.paymentStatus,
-            bookingStatus: item.bookingStatus,
-            contactName:   item.contactName,
-            contactPhone:  item.contactPhone,
-            contactEmail:  item.contactEmail,
-            numRoom:       item.numRoom,
-          }));
-
-        if (Array.isArray(data)) {
-          setBookings(parseBookings(data));
-        } else if (data?.data && Array.isArray(data.data)) {
-          setBookings(parseBookings(data.data));
-        } else {
-          setBookings([]);
-        }
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+    const refundResult = searchParams.get('refundResult');
+    if (refundResult !== null) {
+      if (refundResult === '1') {
+        toast.success('Hoàn tiền cho khách hàng đã được xử lý thành công.', 'Hoàn tiền thành công');
+      } else if (refundResult === '0') {
+        toast.error('Hoàn tiền thất bại. Vui lòng thử lại hoặc liên hệ VNPay.', 'Hoàn tiền thất bại');
+      } else {
+        toast.warning('Không thể xác thực kết quả hoàn tiền từ VNPay.', 'Cảnh báo');
       }
-    };
+      // Xoá param khỏi URL để không hiển thị lại khi reload
+      setSearchParams((prev) => {
+        prev.delete('refundResult');
+        return prev;
+      });
+    }
+  }, []); // chỉ chạy một lần khi mount
 
-    fetchBookings();
+  // ── Fetch ─────────────────────────────────────────────────────────
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let url = '';
+      if (role === 'ADMIN') {
+        url = 'http://localhost:8889/api/booking/all';
+      } else {
+        if (!userId) {
+          setError('Không tìm thấy thông tin đối tác.');
+          setLoading(false);
+          return;
+        }
+        url = `http://localhost:8889/api/booking/partner/${userId}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Lỗi khi tải dữ liệu đặt phòng');
+      const data = await res.json();
+
+      const parseBookings = (list) =>
+        list.map((item) => ({
+          id: item.id,
+          firstName: item.firstName,
+          lastName: item.lastName,
+          email: item.email || item.contactEmail,
+          phone: item.phone || item.contactPhone,
+          hotelName: item.hotelName,
+          roomTypeName: item.roomTypeName,
+          checkIn: item.checkInDate,
+          checkOut: item.checkOutDate,
+          totalPrice: item.totalPrice,
+          paymentStatus: item.paymentStatus,
+          bookingStatus: item.bookingStatus,
+          contactName: item.contactName,
+          contactPhone: item.contactPhone,
+          contactEmail: item.contactEmail,
+          numRoom: item.numRoom,
+          refundId: item.refundId,
+          refundStatus: item.refundStatus,
+          refundAmount: item.refundAmount,
+        }));
+
+      if (Array.isArray(data)) {
+        setBookings(parseBookings(data));
+      } else if (data?.data && Array.isArray(data.data)) {
+        setBookings(parseBookings(data.data));
+      } else {
+        setBookings([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [role, userId]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   // ── Actions ───────────────────────────────────────────────────────
   const handleConfirm = (bookingId) => {
@@ -348,6 +375,26 @@ export default function BookingList() {
     );
   };
 
+  const handleReject = (bookingId) => {
+    toast.confirm(
+      'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn từ chối đặt phòng này?',
+      async () => {
+        try {
+          const res = await fetch(
+            `http://localhost:8889/api/booking/reject/${bookingId}`,
+            { method: 'PUT' }
+          );
+          if (!res.ok) throw new Error((await res.text()) || 'Lỗi khi từ chối đặt phòng');
+          toast.success('Đặt phòng đã bị từ chối.');
+          await fetchBookings();
+        } catch (err) {
+          toast.error(err.message);
+        }
+      },
+      { title: 'Từ chối đặt phòng', confirmLabel: 'Từ chối', confirmColor: '#ef4444' }
+    );
+  };
+
   const handleCancel = (bookingId) => {
     toast.confirm(
       'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn huỷ đặt phòng này?',
@@ -370,6 +417,52 @@ export default function BookingList() {
     );
   };
 
+  /**
+   * Xử lý hoàn tiền: gọi API backend -> trả JSON response từ VNPay ngay (sandbox).
+   * Trong môi trường production, VNPay sẽ gọi IPN callback riêng.
+   */
+  const handleRefund = (booking) => {
+    toast.confirm(
+      `Xác nhận hoàn tiền ${formatVND(booking.refundAmount || booking.totalPrice)} cho khách hàng?`,
+      async () => {
+        try {
+          const res = await fetch(
+            `http://localhost:8889/api/booking/refund/${booking.refundId}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              // vnpTxnRef và transactionDate để trống vì sandbox không bắt buộc
+              body: JSON.stringify({ vnpTxnRef: '', transactionDate: '' }),
+            }
+          );
+          const text = await res.text();
+          if (!res.ok) throw new Error(text || 'Lỗi khi gửi yêu cầu hoàn tiền');
+
+          // Parse response JSON từ VNPay
+          let vnpResponse = {};
+          try { vnpResponse = JSON.parse(text); } catch (_) {}
+
+          const code = vnpResponse.vnp_ResponseCode;
+          if (code === '00') {
+            toast.success('Hoàn tiền thành công! Tiền sẽ được chuyển về tài khoản khách hàng.', 'Hoàn tiền thành công');
+            // Refresh danh sách để cập nhật paymentStatus & refundStatus
+            await fetchBookings();
+          } else {
+            const msg = vnpResponse.vnp_Message || `Mã lỗi VNPay: ${code || 'không xác định'}`;
+            toast.error(msg, 'Hoàn tiền thất bại');
+          }
+        } catch (err) {
+          toast.error(err.message);
+        }
+      },
+      {
+        title: 'Xác nhận hoàn tiền',
+        confirmLabel: 'Hoàn tiền ngay',
+        confirmColor: '#7c3aed',
+      }
+    );
+  };
+
   // ── Filter ────────────────────────────────────────────────────────
   const countByStatus = (statusKey) =>
     statusKey === 'all'
@@ -380,13 +473,23 @@ export default function BookingList() {
     const q = search.toLowerCase();
     const matchesSearch =
       `${b.lastName || ''} ${b.firstName || ''}`.toLowerCase().includes(q) ||
-      (b.hotelName    && b.hotelName.toLowerCase().includes(q))    ||
-      (b.email        && b.email.toLowerCase().includes(q))        ||
-      (b.phone        && b.phone.toLowerCase().includes(q))        ||
+      (b.hotelName && b.hotelName.toLowerCase().includes(q)) ||
+      (b.email && b.email.toLowerCase().includes(q)) ||
+      (b.phone && b.phone.toLowerCase().includes(q)) ||
       (b.roomTypeName && b.roomTypeName.toLowerCase().includes(q));
     const matchesTab = activeTab === 'all' || b.bookingStatus === activeTab;
     return matchesSearch && matchesTab;
   });
+
+  // Điều kiện hiển thị nút Hoàn tiền:
+  // booking ở trạng thái "Từ chối" (5) hoặc "Yêu cầu huỷ" (4)
+  // VÀ paymentStatus = 2 (đã thanh toán)
+  // VÀ refundStatus = 1 (chưa được hoàn, đang chờ xử lý)
+  const shouldShowRefundButton = (b) =>
+    (b.bookingStatus === 5 || b.bookingStatus === 4) &&
+    b.paymentStatus === 2 &&
+    b.refundStatus === 1 &&
+    b.refundId != null;
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -426,7 +529,7 @@ export default function BookingList() {
         }}>
           {BOOKING_STATUS_TABS.map((tab) => {
             const isActive = activeTab === tab.key;
-            const count    = countByStatus(tab.key);
+            const count = countByStatus(tab.key);
             return (
               <button
                 key={tab.key}
@@ -477,12 +580,10 @@ export default function BookingList() {
               <thead>
                 <tr style={{ background: '#f3f4f6', color: '#374151', fontSize: '14px', borderBottom: '2px solid #e5e7eb' }}>
                   <th style={{ padding: '16px', fontWeight: 600 }}>Khách hàng</th>
-                  <th style={{ padding: '16px', fontWeight: 600 }}>Khách sạn & Phòng</th>
+                  <th style={{ padding: '16px', fontWeight: 600 }}>Khách sạn &amp; Phòng</th>
                   <th style={{ padding: '16px', fontWeight: 600 }}>Thời gian</th>
                   <th style={{ padding: '16px', fontWeight: 600 }}>Tổng tiền</th>
-                  
                   <th style={{ padding: '16px', fontWeight: 600 }}>Thanh toán</th>
-                  
                   <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Hành động</th>
                 </tr>
               </thead>
@@ -536,13 +637,17 @@ export default function BookingList() {
                     {/* Price */}
                     <td style={{ padding: '16px', verticalAlign: 'top', fontWeight: 700, color: '#003580', fontSize: '16px' }}>
                       {formatVND(b.totalPrice)}
+                      {b.refundAmount != null && b.refundStatus != null && (
+                        <div style={{ fontSize: '12px', color: '#7c3aed', fontWeight: 500, marginTop: '4px' }}>
+                          Hoàn: {formatVND(b.refundAmount)}
+                        </div>
+                      )}
                     </td>
 
-
+                    {/* Payment */}
                     <td style={{ padding: '16px', verticalAlign: 'top' }}>
                       <PaymentBadge status={b.paymentStatus} />
                     </td>
-
 
                     {/* Actions */}
                     <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'center' }}>
@@ -554,7 +659,7 @@ export default function BookingList() {
                               style={{
                                 padding: '6px 12px', background: '#16a34a', color: '#fff',
                                 border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '13px', fontWeight: 500, width: '110px',
+                                fontSize: '13px', fontWeight: 500, width: '120px',
                               }}
                             >
                               Xác nhận
@@ -566,25 +671,46 @@ export default function BookingList() {
                               style={{
                                 padding: '6px 12px', background: '#3b82f6', color: '#fff',
                                 border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '13px', fontWeight: 500, width: '110px',
+                                fontSize: '13px', fontWeight: 500, width: '120px',
                               }}
                             >
                               Hoàn thành
                             </button>
                           )}
-                          {(b.bookingStatus === 1 || b.bookingStatus === 2) && (
+                          {b.bookingStatus === 1 && (
                             <button
-                              onClick={() => handleCancel(b.id)}
+                              onClick={() => handleReject(b.id)}
                               style={{
                                 padding: '6px 12px', background: '#ef4444', color: '#fff',
                                 border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '13px', fontWeight: 500, width: '110px',
+                                fontSize: '13px', fontWeight: 500, width: '120px',
                               }}
                             >
-                              Huỷ
+                              Từ chối
                             </button>
                           )}
-                          {b.bookingStatus !== 1 && b.bookingStatus !== 2 && (
+                          {/* Nút Hoàn tiền: chỉ hiển thị khi refundStatus=1 & paymentStatus=2 */}
+                          {shouldShowRefundButton(b) && (
+                            <button
+                              onClick={() => handleRefund(b)}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                                color: '#fff',
+                                border: 'none', borderRadius: '6px', cursor: 'pointer',
+                                fontSize: '13px', fontWeight: 600, width: '120px',
+                                boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
+                                transition: 'opacity 0.15s',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                              title={`Hoàn tiền ${formatVND(b.refundAmount || b.totalPrice)}`}
+                            >
+                              Hoàn tiền
+                            </button>
+                          )}
+                          {b.bookingStatus !== 1 && b.bookingStatus !== 2 &&
+                           !shouldShowRefundButton(b) && (
                             <span style={{ fontSize: '13px', color: '#d1d5db' }}>—</span>
                           )}
                         </div>

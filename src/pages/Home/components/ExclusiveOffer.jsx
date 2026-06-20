@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LeftOutlined, RightOutlined, StarFilled, HeartOutlined, HeartFilled } from '@ant-design/icons';
+import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
 const CARDS_PER_VIEW = 4;
@@ -72,8 +73,8 @@ const ExclusiveOffer = () => {
   const handleWishlistToggle = async (e, hotelId) => {
     e.stopPropagation();
     if (!userId) {
-      alert('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
-      navigate('/login');
+      message.warning('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
+      // navigate('/login');
       return;
     }
     try {

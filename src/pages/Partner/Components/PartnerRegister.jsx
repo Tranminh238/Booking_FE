@@ -40,7 +40,7 @@ const PartnerRegister = () => {
         }
 
         try {
-            const response = await fetch("http://localhost:8889/client/register-partner", {
+            const response = await fetch("http://localhost:8889/account/register-partner", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

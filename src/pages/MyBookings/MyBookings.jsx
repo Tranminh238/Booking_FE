@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { startConversation } from "../../api/chatApi";
 
 const StarPicker = ({ value, onChange, max = 10 }) => {
     const [hovered, setHovered] = useState(0);
@@ -39,11 +40,10 @@ const Toast = ({ toasts, onRemove }) => (
     <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
             <div key={toast.id} className="pointer-events-auto animate-slide-in">
-                <div className={`min-w-[300px] max-w-sm px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-sm flex items-start gap-3 ${
-                    toast.type === "error"
+                <div className={`min-w-[300px] max-w-sm px-5 py-4 rounded-2xl shadow-2xl border backdrop-blur-sm flex items-start gap-3 ${toast.type === "error"
                         ? "bg-red-50 border-red-200 text-red-700"
                         : "bg-emerald-50 border-emerald-200 text-emerald-700"
-                }`}>
+                    }`}>
                     <div className="mt-0.5 shrink-0">
                         {toast.type === "error" ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,6 +83,24 @@ const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const handleContactHotel = async (hotelId) => {
+        if (!userId) {
+            showToast("Vui lòng đăng nhập để liên hệ khách sạn.", "error");
+            return;
+        }
+        try {
+            const res = await startConversation(Number(userId), hotelId);
+            if (res.status === 200 && res.data) {
+                navigate(`/my-messages?conversationId=${res.data.id}`);
+            } else {
+                showToast(res.message || "Không thể kết nối với khách sạn.", "error");
+            }
+        } catch (err) {
+            console.error("Lỗi liên hệ khách sạn:", err);
+            showToast("Có lỗi xảy ra khi liên hệ với khách sạn.", "error");
+        }
+    };
     const [activeTab, setActiveTab] = useState("all");
     const [deleteModal, setDeleteModal] = useState(null);
 
@@ -95,6 +113,25 @@ const MyBookings = () => {
     const [reviewsMap, setReviewsMap] = useState({});
     const [expandedReview, setExpandedReview] = useState(null);
     const [toasts, setToasts] = useState([]);
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // { bookingId }
+
+    // Booking Details & Policy Modal state
+    const [bookingDetailsModal, setBookingDetailsModal] = useState(null); // { booking, hotelDetails }
+    const [loadingHotelDetails, setLoadingHotelDetails] = useState(false);
+
+    // Cancel modal state
+    const [cancelModal, setCancelModal] = useState(null); // { bookingId, bookingStatus }
+    const [selectedReason, setSelectedReason] = useState("");
+    const [customReason, setCustomReason] = useState("");
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+    const CANCEL_REASONS = [
+        "Không còn nhu cầu lưu trú.",
+        "Đặt nhầm ngày nhận/trả phòng.",
+        "Đặt nhầm loại phòng.",
+        "Đặt nhầm khách sạn.",
+        "Lý do khác...",
+    ];
 
     const showToast = (msg, type = "success") => {
         const id = Date.now() + Math.random();
@@ -124,12 +161,30 @@ const MyBookings = () => {
         }
     };
 
+    const fetchAndShowDetails = async (booking) => {
+        setLoadingHotelDetails(true);
+        try {
+            const res = await fetch(`http://localhost:8889/api/hotel/gethoteldetail/${booking.hotelId}`);
+            if (!res.ok) throw new Error("Không thể lấy thông tin khách sạn");
+            const data = await res.json();
+            setBookingDetailsModal({ booking, hotelDetails: data.data });
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setLoadingHotelDetails(false);
+        }
+    };
+
     const handleHotelClick = (hotelId) => {
         navigate(`/hotels/${hotelId}`);
     };
 
-    const handleDeleteReview = async (bookingId) => {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) return;
+    const handleDeleteReview = (bookingId) => {
+        setDeleteConfirm({ bookingId });
+    };
+
+    const executeDeleteReview = async (bookingId) => {
+        setDeleteConfirm(null);
         try {
             const res = await fetch(`http://localhost:8889/api/reviews/delete/${bookingId}`, {
                 method: "DELETE",
@@ -187,15 +242,68 @@ const MyBookings = () => {
         }
     };
 
-    const handleCancelBooking = async (bookingId) => {
-        if (!window.confirm("Bạn có chắc chắn muốn hủy đặt phòng này?")) return;
+    const openCancelModal = (booking, hotelDetails) => {
+        let refundAmount = 0;
+        let canRefund = false;
+        const isUnpaid = booking.paymentStatus === 1;
+
+        if (!isUnpaid && hotelDetails?.isRefund === 1) {
+            const checkIn = new Date(booking.checkIn);
+            const today = new Date();
+            const diffTime = checkIn.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays >= (hotelDetails.minDateRefund || 0)) {
+                canRefund = true;
+                refundAmount = Math.round(booking.totalPrice * (hotelDetails.refundPercentage || 0) / 100);
+            }
+        }
+
+        setCancelModal({ 
+            bookingId: booking.id, 
+            bookingStatus: booking.bookingStatus,
+            refundAmount,
+            canRefund,
+            isUnpaid
+        });
+        setSelectedReason("");
+        setCustomReason("");
+        setBookingDetailsModal(null); // Close details modal when opening cancel modal
+    };
+
+    const handleRequestCancel = async () => {
+        const reason = selectedReason === "Lý do khác..." ? customReason.trim() : selectedReason;
+        if (!reason) {
+            showToast("Vui lòng chọn hoặc nhập lý do hủy.", "error");
+            return;
+        }
+        setCancelSubmitting(true);
         try {
-            const res = await fetch(`http://localhost:8889/api/booking/cancel/${bookingId}`, { method: "PUT" });
-            if (!res.ok) throw new Error(await res.text() || "Lỗi khi hủy đặt phòng");
-            showToast("Hủy đặt phòng thành công!");
-            setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, bookingStatus: 0 } : b));
+            const res = await fetch(
+                `http://localhost:8889/api/booking/request-cancel/${cancelModal.bookingId}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bookingId: cancelModal.bookingId, reason }),
+                }
+            );
+            if (!res.ok) throw new Error((await res.text()) || "Lỗi khi yêu cầu hủy đặt phòng");
+            const data = await res.json();
+            const newStatus = data?.status ?? 4;
+            if (newStatus === 4) {
+                showToast("Yêu cầu hủy đặt phòng thành công! Chúng tôi sẽ xử lý hoàn tiền cho bạn.");
+            } else {
+                showToast("Đặt phòng đã được hủy. Theo chính sách khách sạn, đơn này không được hoàn tiền.");
+            }
+            setBookings((prev) =>
+                prev.map((b) =>
+                    b.id === cancelModal.bookingId ? { ...b, bookingStatus: newStatus } : b
+                )
+            );
+            setCancelModal(null);
         } catch (err) {
             showToast(err.message, "error");
+        } finally {
+            setCancelSubmitting(false);
         }
     };
 
@@ -225,6 +333,7 @@ const MyBookings = () => {
                         checkIn: item.checkInDate,
                         checkOut: item.checkOutDate,
                         totalPrice: item.totalPrice,
+                        refundAmount: item.refundAmount,
                         bookingStatus: item.bookingStatus,
                         paymentStatus: item.paymentStatus,
                         contactName: item.contactName,
@@ -253,28 +362,37 @@ const MyBookings = () => {
         fetchBookings();
         fetchUserReviews();
     }, []);
+    const paymentConfig = {
+        1: { label: "Chưa thanh toán", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
+        2: { label: "Đã thanh toán", color: "bg-green-100 text-green-700", dot: "bg-green-500" },
+    }
 
     const statusConfig = {
         0: { label: "Đã hủy", color: "bg-red-100 text-red-600", dot: "bg-red-500" },
-        1: { label: "Chưa thanh toán", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
+        1: { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
         2: { label: "Đã xác nhận", color: "bg-green-100 text-green-700", dot: "bg-green-500" },
         3: { label: "Hoàn thành", color: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
+        4: { label: "Yêu cầu huỷ", color: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+        5: { label: "Từ chối", color: "bg-red-100 text-red-600", dot: "bg-red-500" },
     };
 
     const tabs = [
         { key: "all", label: "Tất cả", status: null },
         { key: "pending", label: "Chờ xác nhận", status: 1 },
         { key: "confirmed", label: "Đã xác nhận", status: 2 },
+        { key: "request_cancel", label: "Yêu cầu huỷ", status: 4 },
         { key: "completed", label: "Hoàn thành", status: 3 },
         { key: "cancelled", label: "Đã hủy", status: 0 },
+        { key: "rejected", label: "Từ chối", status: 5 },
     ];
+
 
     const filtered = activeTab === "all"
         ? bookings
         : bookings.filter((b) => {
-              const tab = tabs.find((t) => t.key === activeTab);
-              return tab && b.bookingStatus === tab.status;
-          });
+            const tab = tabs.find((t) => t.key === activeTab);
+            return tab && b.bookingStatus === tab.status;
+        });
 
     const formatVND = (n) => (n || 0).toLocaleString("vi-VN") + " ₫";
     const formatDate = (d) => {
@@ -297,6 +415,38 @@ const MyBookings = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50 to-cyan-50 py-10 px-4">
             <Toast toasts={toasts} onRemove={handleRemoveToast} />
+
+            {/* Confirm Delete Review Toast */}
+            {deleteConfirm && (
+                <div style={{
+                    position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+                    padding: '16px 20px', borderRadius: '12px', fontWeight: 500, fontSize: '14px',
+                    background: '#fff', color: '#333', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                    border: '1px solid #e5e7eb', minWidth: '300px', maxWidth: '360px',
+                    animation: 'slideIn 0.25s ease',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 700, fontSize: '15px', color: '#dc2626' }}>
+                        <svg style={{ width: '18px', height: '18px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                        Xác nhận xóa
+                    </div>
+                    <p style={{ margin: '0 0 14px', fontSize: '13.5px', color: '#4b5563', lineHeight: 1.5 }}>
+                        Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button
+                            onClick={() => setDeleteConfirm(null)}
+                            style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500, fontSize: '13px', color: '#374151' }}
+                        >Hủy</button>
+                        <button
+                            onClick={() => executeDeleteReview(deleteConfirm.bookingId)}
+                            style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                        >Xóa</button>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="relative bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-8 mb-6 overflow-hidden shadow-xl">
@@ -310,7 +460,6 @@ const MyBookings = () => {
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold text-white">Đặt phòng của tôi</h1>
-                                <p className="text-teal-100 text-sm mt-1">{bookings.length} lượt đặt phòng</p>
                             </div>
                         </div>
                         {(role === "PARTNER" || role === "ADMIN") && (
@@ -328,9 +477,9 @@ const MyBookings = () => {
                     {/* Stats */}
                     <div className="relative mt-6 grid grid-cols-3 gap-4">
                         {[
-                            { label: "Tổng đặt", value: bookings.length, icon: "📋" },
-                            { label: "Hoàn thành", value: getTabCount(3), icon: "✅" },
-                            { label: "Sắp tới", value: getTabCount(2), icon: "🗓️" },
+                            { label: "Tổng đặt", value: bookings.length, icon: "" },
+                            { label: "Hoàn thành", value: getTabCount(3), icon: "" },
+                            { label: "Sắp tới", value: getTabCount(2), icon: "" },
                         ].map((s, i) => (
                             <div key={i} className="bg-white/15 backdrop-blur rounded-xl p-3 text-center border border-white/20">
                                 <div className="text-xl">{s.icon}</div>
@@ -361,7 +510,7 @@ const MyBookings = () => {
 
                 {error && (
                     <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 mb-4 text-sm">
-                        ❌ {error}
+                         {error}
                     </div>
                 )}
 
@@ -410,9 +559,12 @@ const MyBookings = () => {
                                             <div>
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h3 className="font-semibold text-gray-800 text-base hover:text-teal-600 cursor-pointer" onClick={() => handleHotelClick(booking.hotelId)}>
-                                                            {booking.hotelName || "—"}
-                                                        </h3>
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 onClick={() => fetchAndShowDetails(booking)} className="font-semibold text-gray-800 text-base hover:text-teal-600 cursor-pointer">
+                                                                {booking.hotelName || "—"}
+                                                            </h3>
+                                                            {loadingHotelDetails && <span className="text-xs text-gray-400">...</span>}
+                                                        </div>
                                                         {booking.district && booking.city && (
                                                             <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
                                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,10 +574,21 @@ const MyBookings = () => {
                                                             </p>
                                                         )}
                                                     </div>
-                                                    <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${cfg.color}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                        {cfg.label}
-                                                    </span>
+                                                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                                                        <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${cfg.color}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                            {cfg.label}
+                                                        </span>
+                                                        {(() => {
+                                                            const pCfg = paymentConfig[booking.paymentStatus];
+                                                            return pCfg ? (
+                                                                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${pCfg.color}`}>
+                                                                    <span className={`w-1.5 h-1.5 rounded-full ${pCfg.dot}`} />
+                                                                    {pCfg.label}
+                                                                </span>
+                                                            ) : null;
+                                                        })()}
+                                                    </div>
                                                 </div>
 
                                                 <div className="mt-3 grid grid-cols-2 gap-3">
@@ -450,10 +613,22 @@ const MyBookings = () => {
 
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs text-gray-400">Tổng tiền</p>
-                                                    <p className="text-lg font-bold text-teal-600">{formatVND(booking.totalPrice)}</p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {booking.bookingStatus === 4 ? "Tiền hoàn trả" : "Tổng tiền"}
+                                                    </p>
+                                                    <p className="text-lg font-bold text-teal-600">
+                                                        {booking.bookingStatus === 4
+                                                            ? formatVND(booking.refundAmount || 0)
+                                                            : formatVND(booking.totalPrice)}
+                                                    </p>
                                                 </div>
                                                 <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleContactHotel(booking.hotelId)}
+                                                        className="text-xs px-3 py-1.5 bg-teal-50 border border-teal-200 text-teal-600 rounded-lg hover:bg-teal-100 transition"
+                                                    >
+                                                        Liên hệ khách sạn
+                                                    </button>
                                                     {booking.bookingStatus === 3 && (
                                                         existingReview ? (
                                                             <button
@@ -480,14 +655,6 @@ const MyBookings = () => {
                                                                 Đánh giá
                                                             </button>
                                                         )
-                                                    )}
-                                                    {(booking.bookingStatus === 1 || booking.bookingStatus === 2) && (
-                                                        <button
-                                                            onClick={() => handleCancelBooking(booking.id)}
-                                                            className="text-xs px-3 py-1.5 bg-red-50 border border-red-200 text-red-500 rounded-lg hover:bg-red-100 transition"
-                                                        >
-                                                            Hủy
-                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -563,7 +730,7 @@ const MyBookings = () => {
                             {reviewsMap[reviewModal.id] ? "Cập nhật đánh giá" : "Viết đánh giá"}
                         </h3>
                         <p className="text-xs text-gray-400 mb-4">{reviewModal.hotelName}</p>
-                        
+
                         <form onSubmit={handleReviewSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-2">Số sao (1 - 10)</label>
@@ -602,6 +769,153 @@ const MyBookings = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Booking Details Modal */}
+            {bookingDetailsModal && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full p-5 shadow-2xl my-8">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-xl font-bold text-gray-800">Chi tiết đặt phòng & Chính sách</h2>
+                            <button onClick={() => setBookingDetailsModal(null)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        {/* Chi tiết booking */}
+                        <div className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <h3 className="font-semibold text-gray-700 mb-2">Thông tin đặt phòng</h3>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div><span className="text-gray-500">Khách sạn:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.hotelName}</span></div>
+                                <div><span className="text-gray-500">Loại phòng:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.roomTypeName}</span></div>
+                                <div><span className="text-gray-500">Check-in:</span> <span className="font-medium text-gray-800">{formatDate(bookingDetailsModal.booking.checkIn)}</span></div>
+                                <div><span className="text-gray-500">Check-out:</span> <span className="font-medium text-gray-800">{formatDate(bookingDetailsModal.booking.checkOut)}</span></div>
+                                <div><span className="text-gray-500">Tổng tiền:</span> <span className="font-bold text-teal-600">{formatVND(bookingDetailsModal.booking.totalPrice)}</span></div>
+                                <div><span className="text-gray-500">Thanh toán:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.paymentStatus === 1 ? "Chưa thanh toán" : "Đã thanh toán"}</span></div>
+                                <div><span className="text-gray-500">Người đặt:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.contactName}</span></div>
+                                <div><span className="text-gray-500">Số điện thoại:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.contactPhone}</span></div>
+                                <div><span className="text-gray-500">Email:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.contactEmail}</span></div>
+                                <div><span className="text-gray-500">Số người:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.numAdults + bookingDetailsModal.booking.numChildren}</span></div>
+                                <div><span className="text-gray-500">Số phòng:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.numRoom}</span></div>                                
+                            </div>
+                            <div className="mt-6"><span className="text-gray-500">Yêu cầu đặc biệt:</span> <span className="font-medium text-gray-800">{bookingDetailsModal.booking.specialRequests ? bookingDetailsModal.booking.specialRequests : "Không có yêu cầu đặc biệt"}</span></div>                                
+                        </div>
+
+                        {/* Chính sách khách sạn */}
+                        <div className="mb-6 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                            <div className="space-y-3 text-sm text-gray-700">                                
+                                    <p className="font-semibold text-blue-800 mb-1">Chính sách hoàn tiền:</p>
+                                    {bookingDetailsModal.hotelDetails?.isRefund === 1 ? (
+                                        <ul className="list-disc list-inside space-y-1 ml-1 text-gray-700">
+                                            <li>Khách sạn cho phép hoàn tiền.</li>
+                                            <li>Thời gian hủy miễn phí tối thiểu: <span className="font-medium text-red-500">{bookingDetailsModal.hotelDetails.minDateRefund} ngày</span> trước ngày check-in.</li>
+                                            <li>Tỷ lệ hoàn tiền: <span className="font-medium text-teal-600">{bookingDetailsModal.hotelDetails.refundPercentage}%</span></li>
+                                        </ul>
+                                    ) : (
+                                        <p className="text-red-500 font-medium">Khách sạn không hỗ trợ hoàn tiền cho đơn đặt phòng này.</p>
+                                    )}
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button onClick={() => setBookingDetailsModal(null)} className="px-5 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition">Đóng</button>
+                            {(bookingDetailsModal.booking.bookingStatus === 1 || bookingDetailsModal.booking.bookingStatus === 2) && (
+                                <button
+                                    onClick={() => openCancelModal(bookingDetailsModal.booking, bookingDetailsModal.hotelDetails)}
+                                    className="px-5 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition"
+                                >
+                                    Yêu cầu hủy
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Request Modal */}
+            {cancelModal && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+                        {/* Modal Header */}
+                        <div className="flex items-center gap-3 mb-5">
+                            <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-800">Yêu cầu hủy đặt phòng</h3>
+                                <p className="text-xs text-gray-400 mt-0.5">Vui lòng cho chúng tôi biết lý do bạn muốn hủy</p>
+                            </div>
+                        </div>
+
+                        {/* Refund Info */}
+                        <div className="mb-4 bg-orange-50 p-3 rounded-xl border border-orange-100 text-sm">
+                            {cancelModal.isUnpaid ? (
+                                <p className="text-orange-700 font-medium">Đơn đặt phòng chưa thanh toán sẽ được hủy ngay lập tức mà không cần hoàn trả tiền.</p>
+                            ) : cancelModal.canRefund ? (
+                                <p className="text-orange-700 font-medium">Số tiền dự kiến hoàn trả: <span className="font-bold">{formatVND(cancelModal.refundAmount)}</span> ({cancelModal.refundAmount > 0 ? "Theo chính sách khách sạn" : ""})</p>
+                            ) : (
+                                <p className="text-red-600 font-medium">Rất tiếc, theo chính sách của khách sạn hoặc do quá hạn, đơn này không được hoàn tiền.</p>
+                            )}
+                        </div>
+
+                        {/* Preset reasons */}
+                        <div className="space-y-2 mb-4">
+                            {CANCEL_REASONS.map((reason) => (
+                                <button
+                                    key={reason}
+                                    type="button"
+                                    onClick={() => { setSelectedReason(reason); setCustomReason(""); }}
+                                    className={`w-full text-left text-sm px-4 py-3 rounded-xl border transition ${
+                                        selectedReason === reason
+                                            ? "border-red-400 bg-red-50 text-red-700 font-medium"
+                                            : "border-gray-200 bg-gray-50 text-gray-600 hover:border-red-200 hover:bg-red-50/50"
+                                    }`}
+                                >
+                                    <span className={`inline-block w-4 h-4 rounded-full border-2 mr-2 align-middle transition ${
+                                        selectedReason === reason ? "border-red-500 bg-red-500" : "border-gray-300"
+                                    }`} />
+                                    {reason}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Custom reason textarea */}
+                        {selectedReason === "Lý do khác..." && (
+                            <div className="mb-4">
+                                <textarea
+                                    value={customReason}
+                                    onChange={(e) => setCustomReason(e.target.value)}
+                                    placeholder="Nhập lý do hủy của bạn..."
+                                    rows={3}
+                                    className="w-full text-sm px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition resize-none"
+                                />
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setCancelModal(null)}
+                                disabled={cancelSubmitting}
+                                className="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-xl transition"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleRequestCancel}
+                                disabled={cancelSubmitting || !selectedReason || (selectedReason === "Lý do khác..." && !customReason.trim())}
+                                className="px-5 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            >
+                                {cancelSubmitting ? "Đang gửi..." : "Xác nhận yêu cầu hủy"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import InfoHotel from "./Components/InfoHotel";
 import Footer from "../../components/Footer";
+import HotelPolicy from "./Components/HotelPolicy";
 
 const DetailHotel = () => {
     const { id } = useParams();
@@ -31,6 +32,7 @@ const DetailHotel = () => {
     return (
         <div>
             <InfoHotel data={data} />
+            <HotelPolicy hotelId={id} />
             <Footer />
         </div>
     );

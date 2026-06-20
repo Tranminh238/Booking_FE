@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { message } from 'antd';
 import "../Detail.css";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
@@ -172,7 +173,7 @@ export default function InfoHotel({ data }) {
 
   const handleBooking = (room) => {
     if (!appliedSearch.checkIn || !appliedSearch.checkOut) {
-      alert("Vui lòng chọn ngày nhận phòng và ngày trả phòng trước khi đặt phòng.");
+      message.warning('Vui lòng chọn ngày nhận phòng và ngày trả phòng trước khi đặt phòng.');
       return;
     }
     const { displayTotal, displayOriginal, nights } = getRoomPricing(room);
@@ -190,7 +191,7 @@ export default function InfoHotel({ data }) {
 
   const handleSearchRooms = async () => {
     if (checkIn && checkOut && new Date(checkIn) >= new Date(checkOut)) {
-      alert("Ngày trả phòng phải sau ngày nhận phòng.");
+      message.error('Ngày trả phòng phải sau ngày nhận phòng.');
       return;
     }
 
@@ -201,7 +202,7 @@ export default function InfoHotel({ data }) {
     if (checkIn && checkOut) {
       setFilterLoading(true);
       try {
-        const res = await fetch("http://localhost:8889/api/hotels/searchHotels", {
+        const res = await fetch("http://localhost:8889/api/hotel/searchHotels", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -215,11 +216,18 @@ export default function InfoHotel({ data }) {
           }),
         });
         const json = await res.json();
-        if (json.status === 200 && json.data?.content?.length > 0) {
+        if (res.ok && json.status === 200 && json.data?.content?.length > 0) {
           setFilteredRoomData(json.data.content[0]);
+        } else {
+          if (json && json.message) {
+            message.error(json.message);
+          } else {
+            message.error("Lỗi khi tìm phòng trống.");
+          }
         }
       } catch (err) {
         console.error("Lỗi filter rooms:", err);
+        message.error("Không thể kết nối đến máy chủ.");
       } finally {
         setFilterLoading(false);
       }

@@ -3,10 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import Filter from './Components/Filter';
 import ListHotel from './Components/ListHotel';
 import SearchBar from './Components/SearchBar';
+import { message } from 'antd';
 import './SearchHotel.css';
 
 const API_BASE = 'http://localhost:8889/api/hotel';
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 10;
 
 const SearchHotel = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -104,11 +105,17 @@ const SearchHotel = () => {
             } else {
                 setHotels([]);
                 setTotal(0);
+                if (result && result.message) {
+                    message.error(result.message);
+                } else {
+                    message.error('Có lỗi xảy ra khi tìm kiếm khách sạn.');
+                }
             }
         } catch (err) {
             console.error('Fetch error:', err);
             setHotels([]);
             setTotal(0);
+            message.error('Không thể kết nối đến máy chủ.');
         } finally {
             setLoading(false);
         }

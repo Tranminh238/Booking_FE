@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HeartOutlined, HeartFilled, LeftOutlined, RightOutlined, StarFilled } from '@ant-design/icons';
+import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
 const BASE_URL = 'http://localhost:8889';
@@ -235,7 +236,7 @@ const Recommend = () => {
   const handleWishlistToggle = async (e, hotelId) => {
     e.stopPropagation();
     if (!userId) {
-      alert('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
+      message.warning('Vui lòng đăng nhập để lưu khách sạn yêu thích!');
       navigate('/login');
       return;
     }
@@ -273,7 +274,7 @@ const Recommend = () => {
         {/* ── Header ── */}
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-gray-900 mb-0.5">
-            {userId ? 'Bạn vẫn quan tâm?' : 'Khách sạn nổi bật'}
+            {userId ? 'Bạn có thể quan tâm' : 'Khách sạn nổi bật'}
           </h2>
           <p className="text-gray-400 text-sm">
             Giá cho 2 người, từ {checkIn}–{checkOut}

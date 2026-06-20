@@ -103,7 +103,7 @@ const ForgotPassword = () => {
         }
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8889/client/forgot-password/request-otp", {
+            const res = await fetch("http://localhost:8889/account/forgot-password/request-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -128,7 +128,7 @@ const ForgotPassword = () => {
         if (resendCooldown > 0) return;
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8889/client/forgot-password/request-otp", {
+            const res = await fetch("http://localhost:8889/account/forgot-password/request-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -147,15 +147,32 @@ const ForgotPassword = () => {
         }
     };
 
-    // Handle step 2: Verify OTP transition
-    const handleVerifyOtpTransition = (e) => {
+    // Handle step 2: Verify OTP
+    const handleVerifyOtpTransition = async (e) => {
         e.preventDefault();
         if (otp.length < 6) {
             showToast("Mã OTP phải gồm 6 chữ số!", "error");
             return;
         }
-        // Save state and go to step 3 (reset password handles actual verification on API)
-        setStep(3);
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:8889/account/forgot-password/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp }),
+            });
+            const data = await res.json();
+            if (data.status === 200) {
+                showToast("Mã OTP đã được xác thực thành công!");
+                setStep(3);
+            } else {
+                showToast(data.message || "Mã OTP không chính xác hoặc đã hết hạn!", "error");
+            }
+        } catch (error) {
+            showToast("Không thể kết nối đến máy chủ!", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Handle step 3: Reset Password
@@ -172,7 +189,7 @@ const ForgotPassword = () => {
 
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8889/client/forgot-password/reset", {
+            const res = await fetch("http://localhost:8889/account/forgot-password/reset", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -348,9 +365,10 @@ const ForgotPassword = () => {
 
                             <button
                                 type="submit"
-                                className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold text-sm transition-all shadow-md"
+                                disabled={loading}
+                                className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold text-sm transition-all shadow-md disabled:opacity-60"
                             >
-                                Tiếp tục
+                                {loading ? "Đang xác thực..." : "Tiếp tục"}
                             </button>
                         </form>
                     )}

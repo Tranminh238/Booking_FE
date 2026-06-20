@@ -5,10 +5,12 @@ import PropertyList from "../PartnerDashboard/components/PropertyList";
 import { HotelProvider } from "../../api/HotelContext";
 import { Routes, Route } from "react-router-dom";
 import UserList from "./Components/UserList";
+import Roomtype from "./Components/Roomtype";
 import BookingList from "../../components/BookingList";
 import Review from "../../components/Review";
 import '../PartnerDashboard/partnerDashboard.css';
-import StatsGrid from "../PartnerDashboard/components/StatsGrid";
+import RevenueChart from "../PartnerDashboard/components/RevenueChart";
+import Amenity from "./Components/Amenity";
 
 function DashboardAdmin() {
   return (
@@ -18,12 +20,14 @@ function DashboardAdmin() {
         <Sidebar role="admin" />
         <div className="pd-main" style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
           <Routes>
-            <Route path="/" element={<StatsGrid />} />
+            <Route path="/" element={<RevenueChart />} />
             
             <Route path="hotels" element={<PropertyList />} />
             <Route path="users" element={<UserList />} />
             <Route path="bookings" element={<BookingList />} />
             <Route path="reviews" element={<Review />} />
+            <Route path="room-types" element={<Roomtype />} />
+            <Route path="amenities" element={<Amenity />} />
             {/* <Route path="*" element={<PropertyList />} /> */}
           </Routes>
         </div>

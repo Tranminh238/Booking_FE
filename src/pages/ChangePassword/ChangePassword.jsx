@@ -24,7 +24,6 @@ const InputField = ({
                     value={form[name]}
                     onChange={handleChange}
                     placeholder={placeholder}
-                    required
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent transition"
                 />
 
@@ -89,6 +88,7 @@ const ChangePassword = () => {
         newPassword: "",
         confirmPassword: "",
     });
+    const [errors, setErrors] = useState({});
 
     const [showPass, setShowPass] = useState({
         current: false,
@@ -116,6 +116,12 @@ const ChangePassword = () => {
             ...form,
             [e.target.name]: e.target.value,
         });
+        if (errors[e.target.name]) {
+            setErrors((prev) => ({
+                ...prev,
+                [e.target.name]: "",
+            }));
+        }
     };
 
     const getStrength = (password) => {
@@ -151,31 +157,16 @@ const ChangePassword = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (form.newPassword !== form.confirmPassword) {
-            showToast("Mật khẩu xác nhận không khớp!", "error");
-            return;
-        }
-
-        if (form.newPassword.length < 6) {
-            showToast("Mật khẩu phải có ít nhất 6 ký tự!", "error");
-            return;
-        }
-
         setLoading(true);
+        setErrors({});
 
         try {
             const token = sessionStorage.getItem("token");
 
-            if (!token) {
-                showToast("Vui lòng đăng nhập!", "error");
-                return;
-            }
-
             const res = await fetch(
-                "http://localhost:8889/client/change-password",
+                "http://localhost:8889/account/change-password",
                 {
-                    method: "POST",
+                    method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
@@ -186,19 +177,38 @@ const ChangePassword = () => {
 
             const data = await res.json();
 
-            if (data.status === 200) {
-                showToast("Đổi mật khẩu thành công!");
+            if (data.code !== 200) {
+                const backendMsg = data.message || "";
+                const newErrors = {};
 
-                setForm({
-                    currentPassword: "",
-                    newPassword: "",
-                    confirmPassword: "",
-                });
-            } else {
-                showToast(data.message || "Có lỗi xảy ra!", "error");
-            }
+                if (backendMsg.includes("Mật khẩu hiện tại")) {
+                    newErrors.currentPassword = backendMsg;
+                } else if (backendMsg.includes("Xác nhận mật khẩu") || backendMsg.includes("mật khẩu xác nhận")) {
+                    newErrors.confirmPassword = backendMsg;
+                } else if (backendMsg.includes("Mật khẩu mới") || backendMsg.includes("tối thiểu 8 ký tự")) {
+                    newErrors.newPassword = backendMsg;
+                } else {
+                    // Fallback to putting the message in currentPassword or general if we don't match
+                    newErrors.general = backendMsg;
+                }
+
+                setErrors(newErrors);
+                showToast(backendMsg || "Đổi mật khẩu thất bại!", "error");
+                return;
+            }   
+
+            showToast(data.message || "Đổi mật khẩu thành công!");
+
+            setForm({
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+            setErrors({});
+
         } catch (error) {
-            showToast("Có lỗi xảy ra, vui lòng thử lại!", "error");
+            console.error(error);
+            showToast("Không thể kết nối server!", "error");
         } finally {
             setLoading(false);
         }
@@ -276,6 +286,7 @@ const ChangePassword = () => {
                                 handleChange={handleChange}
                                 setShowPass={setShowPass}
                             />
+                         
 
                             {form.newPassword && (
                                 <div className="mt-2">

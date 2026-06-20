@@ -2,9 +2,10 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import PropertyList from '../PartnerDashboard/components/PropertyList';
 import BookingList from '../../components/BookingList';
-import StatsGrid from '../PartnerDashboard/components/StatsGrid';
 import CreateHotel from '../PartnerDashboard/components/CreateHotel';
 import Review from '../../components/Review';
+import RevenueChart from '../PartnerDashboard/components/RevenueChart';
+import PartnerMessages from './components/PartnerMessages';
 import { HotelProvider, useHotels } from '../../api/HotelContext';
 import './partnerDashboard.css';
 import PartnerNavbar from '../Partner/Components/PartnerNavbar';
@@ -20,7 +21,7 @@ function DashboardContent() {
         <Sidebar role="partner" />
         <div className="pd-main" style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
           <Routes>
-            <Route path="/" element={<StatsGrid />} />
+            <Route path="/" element={<RevenueChart />} />
             <Route path="my-hotels" element={
               <>
                 <CreateHotel />
@@ -29,6 +30,7 @@ function DashboardContent() {
             } />
             <Route path="bookings" element={<BookingList />} />
             <Route path="reviews" element={<Review />} />
+            <Route path="messages" element={<PartnerMessages />} />
             <Route path="*" element={<div style={{ textAlign: 'center', marginTop: '50px' }}>Tính năng đang được phát triển...</div>} />
           </Routes>
         </div>

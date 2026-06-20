@@ -71,11 +71,6 @@ const Footer = () => {
                     <div className="border-t border-zinc-200 py-8">
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                             <p className="text-sm text-zinc-500">© 2024 PrebuiltUI. All rights reserved.</p>
-                            <div className="flex gap-6 text-sm text-zinc-500">
-                                <a href="#" className="hover:text-zinc-900 transition-colors">English</a>
-                                <a href="#" className="hover:text-zinc-900 transition-colors">Deutsch</a>
-                                <a href="#" className="hover:text-zinc-900 transition-colors">Español</a>
-                            </div>
                         </div>
                     </div>
                 </div>

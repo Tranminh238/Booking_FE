@@ -15,17 +15,39 @@ const formatDateTime = (dateStr) => {
   return d.toLocaleDateString('vi-VN');
 };
 
-const ROOM_TYPES = [
-  { id: 1, name: "Phòng Standard" },
-  { id: 2, name: "Phòng Deluxe" },
-  { id: 3, name: "Phòng Suite" },
-  { id: 4, name: "Phòng Single" },
-  { id: 5, name: "Phòng Double" },
-];
+
 
 /* ─────────────────────────── Toast Component ─────────────────────────── */
 function Toast({ toast }) {
   if (!toast) return null;
+
+  if (toast.type === 'confirm') {
+    return (
+      <div style={{
+        position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+        padding: '16px 24px', borderRadius: '10px', fontWeight: 500, fontSize: '14px',
+        background: '#fff', color: '#333', boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        animation: 'fadeInDown 0.3s ease', border: '1px solid #e5e7eb',
+        minWidth: '300px'
+      }}>
+        <div style={{ marginBottom: '12px', fontWeight: 600 }}>Xác nhận</div>
+        <div style={{ marginBottom: '16px' }}>{toast.msg}</div>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={toast.onCancel}
+            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+          >Hủy</button>
+          <button
+            onClick={() => {
+              if (toast.onConfirm) toast.onConfirm();
+            }}
+            style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: '#003580', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+          >Đồng ý</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
@@ -34,7 +56,7 @@ function Toast({ toast }) {
       color: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
       animation: 'fadeInDown 0.3s ease',
     }}>
-      {toast.type === 'success' ? '✅ ' : '❌ '}{toast.msg}
+      {toast.type === 'success' ? ' ' : ' '}{toast.msg}
     </div>
   );
 }
@@ -70,7 +92,17 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
           city: '',
           country: '',
           amenityIds: d.amenity_ids || [],
+          identificationDocuments: d.identificationDocuments || '',
+          checkInInstructions: d.checkInInstructions || '',
+          smokePolicy: d.smokePolicy || '',
+          petPolicy: d.petPolicy || '',
+          isRefund: d.isRefund !== undefined ? String(d.isRefund) : '0',
+          minDateRefund: d.minDateRefund || '',
+          refundPercentage: d.refundPercentage || '',
+          keepImages: d.images || [],
+          keepPolicies: d.policy_url || [],
           newImages: [],
+          newPolicies: [],
         });
       }
       const ams = Array.isArray(amenData) ? amenData : (amenData?.data || []);
@@ -113,8 +145,25 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
       if (form.district) payload.append('district', form.district);
       if (form.city) payload.append('city', form.city);
       if (form.country) payload.append('country', form.country);
+
       form.amenityIds.forEach(id => payload.append('amenityIds', id));
+
+      // Send keep parameters
+      form.keepImages.forEach(url => payload.append('keepImages', url));
+      form.keepPolicies.forEach(url => payload.append('keepPolicies', url));
+
       form.newImages.forEach(f => payload.append('images', f));
+      form.newPolicies.forEach(f => payload.append('policyFiles', f));
+
+      payload.append('identificationDocuments', form.identificationDocuments);
+      payload.append('checkInInstructions', form.checkInInstructions);
+      payload.append('smokePolicy', form.smokePolicy);
+      payload.append('petPolicy', form.petPolicy);
+      payload.append('isRefund', form.isRefund);
+      if (form.isRefund === '1') {
+        if (form.minDateRefund) payload.append('minDateRefund', form.minDateRefund);
+        if (form.refundPercentage) payload.append('refundPercentage', form.refundPercentage);
+      }
 
       const res = await fetch(`http://localhost:8889/api/hotel/update/${hotel.id}`, {
         method: 'PUT',
@@ -248,6 +297,143 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                 />
               </div>
 
+              {/* CHÍNH SÁCH KHÁCH SẠN */}
+              <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '16px 20px', marginBottom: '14px', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#003580', marginBottom: '14px', textTransform: 'uppercase' }}>📜 CHÍNH SÁCH KHÁCH SẠN</div>
+
+                {/* Giấy tờ tùy thân */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={labelStyle}>Khách cần xuất trình giấy tờ tùy thân khi nhận phòng?</label>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                    {[{ value: 'Có', label: 'Có', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+                    { value: 'Không', label: 'Không', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+                    ].map(opt => {
+                      const selected = form.identificationDocuments === opt.value;
+                      return (
+                        <label key={opt.value} style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          gap: '8px', padding: '10px', borderRadius: '8px', cursor: 'pointer',
+                          border: selected ? `2px solid ${opt.border}` : '1.5px solid #d1d5db',
+                          background: selected ? opt.bg : '#fff',
+                          fontSize: '14px', fontWeight: selected ? 700 : 400,
+                          color: selected ? opt.color : '#374151',
+                          transition: 'all 0.15s',
+                        }}>
+                          <input
+                            type="radio" name="identificationDocuments" value={opt.value}
+                            checked={selected}
+                            onChange={() => handleChange('identificationDocuments', opt.value)}
+                            style={{ display: 'none' }}
+                          />
+                          {opt.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Hướng dẫn check-in */}
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={labelStyle}>Hướng dẫn nhận phòng</label>
+                  <textarea
+                    style={{ ...inputStyle, height: '70px', resize: 'vertical' }}
+                    placeholder="VD: Nhận phòng tại quầy lễ tân tầng 1. Cần đặt cọc 500.000đ..."
+                    value={form.checkInInstructions}
+                    onChange={e => handleChange('checkInInstructions', e.target.value)}
+                  />
+                </div>
+
+                {/* Hút thuốc & Thú cưng */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Chính sách hút thuốc</label>
+                    <select
+                      style={{ ...inputStyle, appearance: 'auto' }}
+                      value={form.smokePolicy}
+                      onChange={e => handleChange('smokePolicy', e.target.value)}
+                    >
+                      <option value="Cấm hút thuốc hoàn toàn">Cấm hút thuốc hoàn toàn</option>
+                      <option value="Cho phép hút thuốc ở khu vực quy định">Cho phép hút thuốc ở khu vực quy định</option>
+                      <option value="Cho phép hút thuốc">Cho phép hút thuốc</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Chính sách thú cưng</label>
+                    <select
+                      style={{ ...inputStyle, appearance: 'auto' }}
+                      value={form.petPolicy}
+                      onChange={e => handleChange('petPolicy', e.target.value)}
+                    >
+                      <option value="Không cho phép thú cưng">Không cho phép thú cưng</option>
+                      <option value="Cho phép thú cưng nhỏ">Cho phép thú cưng nhỏ</option>
+                      <option value="Cho phép tất cả thú cưng">Cho phép tất cả thú cưng</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Hoàn tiền */}
+                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px 14px' }}>
+                  <label style={labelStyle}>Chính sách hoàn tiền</label>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                    {[{ value: '1', label: 'Có hoàn tiền', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+                    { value: '0', label: 'Không hoàn tiền', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' }
+                    ].map(opt => {
+                      const selected = form.isRefund === opt.value;
+                      return (
+                        <label key={opt.value} style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          gap: '8px', padding: '10px', borderRadius: '8px', cursor: 'pointer',
+                          border: selected ? `2px solid ${opt.border}` : '1.5px solid #d1d5db',
+                          background: selected ? opt.bg : '#fff',
+                          fontSize: '14px', fontWeight: selected ? 700 : 400,
+                          color: selected ? opt.color : '#374151',
+                          transition: 'all 0.15s',
+                        }}>
+                          <input
+                            type="radio" name="isRefund" value={opt.value}
+                            checked={selected}
+                            onChange={() => {
+                              handleChange('isRefund', opt.value);
+                              if (opt.value === '0') {
+                                handleChange('minDateRefund', '');
+                                handleChange('refundPercentage', '');
+                              }
+                            }}
+                            style={{ display: 'none' }}
+                          />
+                          {opt.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {form.isRefund === '1' && (
+                    <div style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>Số ngày hủy tối thiểu</label>
+                        <input
+                          type="number"
+                          style={inputStyle}
+                          value={form.minDateRefund}
+                          onChange={e => handleChange('minDateRefund', e.target.value)}
+                          placeholder="VD: 3"
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>Tỷ lệ hoàn tiền (%)</label>
+                        <input
+                          type="number"
+                          style={inputStyle}
+                          value={form.refundPercentage}
+                          onChange={e => handleChange('refundPercentage', e.target.value)}
+                          placeholder="VD: 100"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Tiện nghi */}
               {amenitiesList.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
@@ -277,12 +463,18 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
               )}
 
               {/* Ảnh hiện tại */}
-              {detail?.images?.length > 0 && (
+              {form.keepImages?.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={labelStyle}>ẢNH HIỆN TẠI</label>
+                  <label style={labelStyle}>ẢNH HIỆN TẠI </label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {detail.images.map((img, i) => (
-                      <img key={i} src={img} alt="" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    {form.keepImages.map((img, i) => (
+                      <div key={i} style={{ position: 'relative', width: '80px', height: '60px' }}>
+                        <img src={img} alt="" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                        <button
+                          type="button" onClick={() => setForm(prev => ({ ...prev, keepImages: prev.keepImages.filter(item => item !== img) }))}
+                          style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: 'white', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >×</button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -306,7 +498,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                       <img src={URL.createObjectURL(f)} alt="preview" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
                       <button
                         type="button" onClick={() => removeNewImage(i)}
-                        style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: 'white', color: 'black', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >×</button>
                     </div>
                   ))}
@@ -320,7 +512,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
                 </button>
 
                 <button onClick={handleSave} disabled={saving} style={{ padding: '10px 28px', background: '#003580', color: '#fff', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '14px', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
+                  {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
               </div>
             </>
@@ -332,7 +524,7 @@ function EditHotelModal({ hotel, onClose, onSuccess }) {
 }
 
 /* ─────────────────────────── Edit Room Modal ─────────────────────────── */
-function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
+function EditRoomModal({ room, hotelId, onClose, onSuccess, roomTypes }) {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [amenitiesList, setAmenitiesList] = useState([]);
@@ -348,7 +540,6 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
   const [promoSaving, setPromoSaving] = useState(false);
   const [promoForm, setPromoForm] = useState({
     discountPercentage: '',
-    quantityRoom: '',
     startDate: '',
     endDate: '',
   });
@@ -371,6 +562,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
           status: d.status !== undefined ? String(d.status) : '1',
           description: d.description || '',
           amenityIds: d.amenityIds || [],
+          keepImages: d.imageUrls || [],
           newImages: [],
         });
       } else {
@@ -383,6 +575,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
           status: room.status !== undefined ? String(room.status) : '1',
           description: room.description || '',
           amenityIds: [],
+          keepImages: room.imageUrls || [],
           newImages: [],
         });
       }
@@ -424,6 +617,34 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ── Delete room ──
+  const handleDeleteRoom = () => {
+    setToast({
+      type: 'confirm',
+      msg: 'Bạn có chắc muốn xóa phòng này?',
+      onCancel: () => setToast(null),
+      onConfirm: async () => {
+        setToast(null);
+        setSaving(true);
+        try {
+          const res = await fetch(`http://localhost:8889/api/room/delete/${room.id}`, { method: 'DELETE' });
+          if (res.ok) {
+            showToast('success', 'Xóa phòng thành công!');
+            setTimeout(() => { onSuccess(); onClose(); }, 1500);
+          } else {
+            showToast('error', 'Xóa phòng thất bại!');
+          }
+        } catch {
+          showToast('error', 'Không thể kết nối server!');
+        } finally {
+          if (document.body.contains(document.body)) {
+            setSaving(false);
+          }
+        }
+      },
+    });
+  };
+
   // ── Save room ──
   const handleSave = async () => {
     if (!form.roomTypeId) { showToast('error', 'Vui lòng chọn loại phòng!'); return; }
@@ -440,6 +661,9 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
       payload.append('status', form.status);
       payload.append('description', form.description);
       form.amenityIds.forEach(id => payload.append('amenityIds', id));
+      if (form.keepImages) {
+        form.keepImages.forEach(url => payload.append('keepImages', url));
+      }
       form.newImages.forEach(f => payload.append('images', f));
 
       const res = await fetch(`http://localhost:8889/api/room/update/${room.id}`, { method: 'PUT', body: payload });
@@ -462,18 +686,20 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     setPromoForm(prev => ({ ...prev, [field]: value }));
 
   const handleAddPromotion = async () => {
-    const { discountPercentage, quantityRoom, startDate, endDate } = promoForm;
-    if (!discountPercentage || !quantityRoom || !startDate || !endDate) {
+    const { discountPercentage, startDate, endDate } = promoForm;
+    if (!discountPercentage || !startDate || !endDate) {
       showToast('error', 'Vui lòng điền đầy đủ thông tin khuyến mãi!'); return;
     }
     if (Number(discountPercentage) <= 1 || Number(discountPercentage) > 100) {
       showToast('error', 'Giảm giá phải từ 2% đến 100%!'); return;
     }
-    if (new Date(startDate) >= new Date(endDate)) {
+    if (startDate >= endDate) {
       showToast('error', 'Ngày bắt đầu phải trước ngày kết thúc!'); return;
     }
-    if (new Date(startDate) <= new Date()) {
-      showToast('error', 'Ngày bắt đầu phải trong tương lai!'); return;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (startDate < todayStr) {
+      showToast('error', 'Ngày bắt đầu không được ở quá khứ!'); return;
     }
     setPromoSaving(true);
     try {
@@ -483,15 +709,14 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
         body: JSON.stringify({
           roomId: room.id,
           discountPercentage: Number(discountPercentage),
-          quantityRoom: Number(quantityRoom),
-          startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString(),
+          startDate: startDate,
+          endDate: endDate,
         }),
       });
       const data = await res.json();
       if (res.ok || data.status === 200) {
         showToast('success', 'Thêm khuyến mãi thành công!');
-        setPromoForm({ discountPercentage: '', quantityRoom: '', startDate: '', endDate: '' });
+        setPromoForm({ discountPercentage: '', startDate: '', endDate: '' });
         setShowPromoForm(false);
         fetchPromotions();
       } else {
@@ -504,15 +729,22 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     }
   };
 
-  const handleDeletePromotion = async (promoId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa khuyến mãi này?')) return;
-    try {
-      const res = await fetch(`http://localhost:8889/api/promotions/delete/${promoId}`, { method: 'DELETE' });
-      if (res.ok) { showToast('success', 'Đã xóa khuyến mãi!'); fetchPromotions(); }
-      else showToast('error', 'Xóa thất bại!');
-    } catch {
-      showToast('error', 'Không thể kết nối server!');
-    }
+  const handleDeletePromotion = (promoId) => {
+    setToast({
+      type: 'confirm',
+      msg: 'Bạn có chắc muốn xóa khuyến mãi này?',
+      onCancel: () => setToast(null),
+      onConfirm: async () => {
+        setToast(null);
+        try {
+          const res = await fetch(`http://localhost:8889/api/promotions/delete/${promoId}`, { method: 'DELETE' });
+          if (res.ok) { showToast('success', 'Đã xóa khuyến mãi!'); fetchPromotions(); }
+          else showToast('error', 'Xóa thất bại!');
+        } catch {
+          showToast('error', 'Không thể kết nối server!');
+        }
+      },
+    });
   };
 
   // ── Styles ──
@@ -523,7 +755,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
   };
   const labelStyle = { fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px', display: 'block' };
 
-  const roomTypeName = ROOM_TYPES.find(rt => rt.id === Number(room.roomTypeId))?.name || `Loại ${room.roomTypeId}`;
+  const roomTypeName = roomTypes?.find(rt => rt.id === Number(room.roomTypeId))?.name || `Loại ${room.roomTypeId}`;
 
   // ── Promotion status helper ──
   const getPromoStatus = (promo) => {
@@ -533,7 +765,6 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
     if (promo.status === 2) return { label: 'Đã xóa', bg: '#f3f4f6', color: '#9ca3af' };
     if (now < start) return { label: 'Sắp diễn ra', bg: '#fef3c7', color: '#b45309' };
     if (now > end) return { label: 'Hết hạn', bg: '#fee2e2', color: '#dc2626' };
-    if (promo.quantityUsed >= promo.quantityRoom) return { label: 'Hết lượt', bg: '#fee2e2', color: '#dc2626' };
     return { label: 'Đang chạy', bg: '#dcfce7', color: '#16a34a' };
   };
 
@@ -576,7 +807,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                 <label style={labelStyle}>LOẠI PHÒNG *</label>
                 <select style={{ ...inputStyle, appearance: 'auto' }} value={form.roomTypeId} onChange={e => handleChange('roomTypeId', e.target.value)}>
                   <option value="">-- Chọn loại phòng --</option>
-                  {ROOM_TYPES.map(rt => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
+                  {roomTypes?.map(rt => <option key={rt.id} value={rt.id}>{rt.name}</option>)}
                 </select>
               </div>
 
@@ -636,12 +867,18 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
               )}
 
               {/* Ảnh hiện tại */}
-              {detail?.imageUrls?.length > 0 && (
+              {form.keepImages?.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
                   <label style={labelStyle}>ẢNH HIỆN TẠI</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {detail.imageUrls.map((img, i) => (
-                      <img key={i} src={img} alt="" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    {form.keepImages.map((img, i) => (
+                      <div key={i} style={{ position: 'relative', width: '80px', height: '60px' }}>
+                        <img src={img} alt="" style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                        <button
+                          type="button" onClick={() => setForm(prev => ({ ...prev, keepImages: prev.keepImages.filter(item => item !== img) }))}
+                          style={{ position: 'absolute', top: '-6px', right: '-6px', width: '18px', height: '18px', borderRadius: '50%', background: 'white', color: '#000', border: 'none', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >×</button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -663,18 +900,21 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
               </div>
 
               {/* Save room actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingBottom: '20px', borderBottom: '2px solid #f3f4f6' }}>
-                <button onClick={onClose} style={{ padding: '9px 22px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Hủy</button>
-                <button onClick={handleSave} disabled={saving} style={{ padding: '9px 26px', background: '#003580', color: '#fff', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
-                  {saving ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: '20px', borderBottom: '2px solid #f3f4f6' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button onClick={onClose} style={{ padding: '9px 22px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Hủy</button>
+                  <button onClick={handleDeleteRoom} disabled={saving} style={{ padding: '9px 22px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}>Xóa phòng</button>
+                  <button onClick={handleSave} disabled={saving} style={{ padding: '9px 26px', background: '#003580', color: '#fff', border: 'none', borderRadius: '8px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+                    {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </button>
+                </div>
               </div>
 
               {/* ════ KHUYẾN MÃI ════ */}
               <div style={{ marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#003580', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    🏷️ Khuyến mãi ({promotions.filter(p => p.status !== 2).length})
+                    Khuyến mãi ({promotions.filter(p => p.status !== 2).length})
                   </div>
                   <button
                     onClick={() => setShowPromoForm(v => !v)}
@@ -687,7 +927,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                 {/* Form thêm khuyến mãi */}
                 {showPromoForm && (
                   <div style={{ background: '#f0f7ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '16px', marginBottom: '14px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0369a1', marginBottom: '12px' }}>📝 Thêm khuyến mãi mới</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0369a1', marginBottom: '12px' }}> Thêm khuyến mãi mới</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                       <div>
                         <label style={labelStyle}>GIẢM GIÁ (%)</label>
@@ -697,16 +937,6 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                           value={promoForm.discountPercentage}
                           onChange={e => handlePromoChange('discountPercentage', e.target.value)}
                           placeholder="VD: 20"
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>SỐ LƯỢNG PHÒNG ÁP DỤNG</label>
-                        <input
-                          type="number" min="1"
-                          style={inputStyle}
-                          value={promoForm.quantityRoom}
-                          onChange={e => handlePromoChange('quantityRoom', e.target.value)}
-                          placeholder="VD: 10"
                         />
                       </div>
                       <div>
@@ -734,7 +964,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                         disabled={promoSaving}
                         style={{ padding: '8px 22px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: '8px', cursor: promoSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '13px', opacity: promoSaving ? 0.7 : 1 }}
                       >
-                        {promoSaving ? '⏳ Đang lưu...' : '✅ Xác nhận thêm'}
+                        {promoSaving ? 'Đang lưu...' : ' Xác nhận thêm'}
                       </button>
                     </div>
                   </div>
@@ -745,7 +975,7 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                   <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>⏳ Đang tải khuyến mãi...</p>
                 ) : promotions.filter(p => p.status !== 2).length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: '14px' }}>
-                    <div style={{ fontSize: '28px', marginBottom: '6px' }}>🏷️</div>
+                    <div style={{ fontSize: '28px', marginBottom: '6px' }}></div>
                     Chưa có khuyến mãi nào
                   </div>
                 ) : (
@@ -764,12 +994,9 @@ function EditRoomModal({ room, hotelId, onClose, onSuccess }) {
                             <div style={{ minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                 <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: st.bg, color: st.color }}>{st.label}</span>
-                                <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                  {promo.quantityUsed}/{promo.quantityRoom} lượt dùng
-                                </span>
                               </div>
                               <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                📅{formatDateTime(promo.startDate)} → {formatDateTime(promo.endDate)}
+                                {formatDateTime(promo.startDate)} → {formatDateTime(promo.endDate)}
                               </div>
                             </div>
                           </div>
@@ -812,7 +1039,7 @@ function HotelDetailModal({ hotel, onClose }) {
   const statusLabel = (s) =>
     s === 2 ? { text: 'Hoạt động', color: '#16a34a', bg: '#dcfce7' }
       : s === 1 ? { text: 'Chờ duyệt', color: '#b45309', bg: '#fef3c7' }
-        : { text: 'Đã xóa', color: '#dc2626', bg: '#fee2e2' };
+        : { text: 'Bị từ chối', color: '#dc2626', bg: '#fee2e2' };
 
   return (
     <div
@@ -894,9 +1121,32 @@ function HotelDetailModal({ hotel, onClose }) {
                 </div>
               )}
 
+              {/* Chính sách khách sạn */}
+              <div style={{ marginTop: '20px', borderTop: '1px solid #f3f4f6', paddingTop: '16px', marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#003580', marginBottom: '12px', textTransform: 'uppercase' }}> Chính sách khách sạn</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <InfoRow label="Chính sách hút thuốc" value={detail.smokePolicy || 'Cấm hút thuốc hoàn toàn'} />
+                  <InfoRow label="Chính sách thú cưng" value={detail.petPolicy || 'Không cho phép thú cưng'} />
+                  <InfoRow label="Yêu cầu giấy tờ tùy thân" value={detail.identificationDocuments || 'Không yêu cầu'} />
+                  <InfoRow label="Hướng dẫn nhận phòng" value={detail.checkInInstructions || 'Nhận phòng tại quầy lễ tân'} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', border: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '2px' }}> Chính sách hoàn tiền</div>
+                    <div style={{ fontSize: '14px', color: '#111827', fontWeight: 500 }}>
+                      {Number(detail.isRefund) === 1 ? (
+                        <>Có hoàn tiền (Hủy trước {detail.minDateRefund} ngày được hoàn {detail.refundPercentage}%)</>
+                      ) : (
+                        <>Không hoàn tiền</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Gallery ảnh thêm */}
               {detail.images && detail.images.length > 1 && (
-                <div>
+                <div style={{ marginBottom: '20px' }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', marginBottom: '8px' }}>THƯ VIỆN ẢNH</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {detail.images.slice(1).map((img, i) => (
@@ -923,7 +1173,7 @@ function InfoRow({ icon, label, value }) {
 }
 
 /* ─────────────────────────── Rooms Modal ─────────────────────────── */
-function RoomsModal({ hotel, onClose, onAddRoom, role }) {
+function RoomsModal({ hotel, onClose, onAddRoom, role, roomTypes }) {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editRoom, setEditRoom] = useState(null);
@@ -944,22 +1194,28 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
     fetchRooms();
   }, [hotel.id]);
 
-  const handleDeleteRoom = async (roomId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa phòng này?')) return false;
-    try {
-      const res = await fetch(`http://localhost:8889/api/room/delete/${roomId}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchRooms();
-        return true;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return false;
+  const [roomDeleteToast, setRoomDeleteToast] = useState(null);
+
+  const handleDeleteRoom = (roomId) => {
+    setRoomDeleteToast({
+      type: 'confirm',
+      msg: 'Bạn có chắc muốn xóa phòng này?',
+      onCancel: () => setRoomDeleteToast(null),
+      onConfirm: async () => {
+        setRoomDeleteToast(null);
+        try {
+          const res = await fetch(`http://localhost:8889/api/room/delete/${roomId}`, { method: 'DELETE' });
+          if (res.ok) fetchRooms();
+        } catch (e) {
+          console.error(e);
+        }
+      },
+    });
   };
 
   return (
     <>
+      <Toast toast={roomDeleteToast} />
       <div className="pd-form__overlay" onClick={onClose} style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="pd-form__card" onClick={e => e.stopPropagation()} style={{ width: '860px', maxWidth: '92vw', padding: '24px', backgroundColor: 'white', borderRadius: '12px', maxHeight: '82vh', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -993,8 +1249,7 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
               </thead>
               <tbody>
                 {rooms.map(r => {
-                  const roomTypeMap = { 1: "Standard", 2: "Deluxe", 3: "Suite", 4: "Single", 5: "Double" };
-                  const rTypeName = roomTypeMap[r.roomTypeId] || `Loại ${r.roomTypeId}`;
+                  const rTypeName = roomTypes?.find(rt => rt.id === Number(r.roomTypeId))?.name || `Loại ${r.roomTypeId}`;
                   return (
                     <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '12px', color: '#1f2937', fontWeight: 500 }}>{rTypeName}</td>
@@ -1057,6 +1312,7 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
           onClose={() => setEditRoom(null)}
           onSuccess={fetchRooms}
           onDelete={handleDeleteRoom}
+          roomTypes={roomTypes}
         />
       )}
 
@@ -1069,6 +1325,7 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
           onClose={() => setDetailRoom(null)}
           onEdit={(r) => setEditRoom(r)}
           onDelete={handleDeleteRoom}
+          roomTypes={roomTypes}
         />
       )}
     </>
@@ -1076,7 +1333,7 @@ function RoomsModal({ hotel, onClose, onAddRoom, role }) {
 }
 
 /* ─────────────────────────── Room Detail Modal ─────────────────────────── */
-function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role }) {
+function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role, roomTypes }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [amenitiesList, setAmenitiesList] = useState([]);
@@ -1091,8 +1348,7 @@ function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role }) {
     }).catch(() => { }).finally(() => setLoading(false));
   }, [room.id]);
 
-  const roomTypeMap = { 1: 'Standard', 2: 'Deluxe', 3: 'Suite', 4: 'Single', 5: 'Double' };
-  const rTypeName = roomTypeMap[room.roomTypeId] || `Loại ${room.roomTypeId}`;
+  const rTypeName = roomTypes?.find(rt => rt.id === Number(room.roomTypeId))?.name || `Loại ${room.roomTypeId}`;
 
   return (
     <div
@@ -1136,11 +1392,11 @@ function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role }) {
               {/* Thông tin chính */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
                 {[
-                  { icon: '🛏️', label: 'Loại phòng', value: rTypeName },
-                  { icon: '💰', label: 'Giá mỗi đêm', value: formatVND(room.pricePerNight) },
-                  { icon: '👥', label: 'Sức chứa', value: `${room.capacity} người` },
-                  { icon: '📦', label: 'Số lượng phòng', value: `${room.quantity} phòng` },
-                  { icon: '📐', label: 'Diện tích', value: room.area ? `${room.area} m²` : '—' },
+                  { icon: '', label: 'Loại phòng', value: rTypeName },
+                  { icon: '', label: 'Giá mỗi đêm', value: formatVND(room.pricePerNight) },
+                  { icon: '', label: 'Sức chứa', value: `${room.capacity} người` },
+                  { icon: '', label: 'Số lượng phòng', value: `${room.quantity} phòng` },
+                  { icon: '', label: 'Diện tích', value: room.area ? `${room.area} m²` : '—' },
                 ].map(({ icon, label, value }) => (
                   <div key={label} style={{ background: '#f9fafb', borderRadius: '8px', padding: '10px 14px', border: '1px solid #f3f4f6' }}>
                     <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600, marginBottom: '2px' }}>{icon} {label}</div>
@@ -1199,7 +1455,7 @@ function RoomDetailModal({ room, hotelId, onClose, onEdit, onDelete, role }) {
 }
 
 /* ─────────────────────────── Property Card ─────────────────────────── */
-function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEditHotel, role, currentTab }) {
+function PropertyCard({ p, onDelete, onUnactive, onActive, onViewRooms, onApprove, onViewDetail, onEditHotel, role, currentTab }) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -1234,7 +1490,7 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
         )}
       </div>
 
-      
+
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
@@ -1251,20 +1507,32 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
           >Chỉnh sửa</button>
         )}
 
-        {role === 'ADMIN' && currentTab === 'Chờ duyệt' && (
+        {role === 'ADMIN' && currentTab === 'Phê duyệt' && (
           <button
             onClick={() => onApprove(p.id)}
             style={{ width: '130px', padding: '8px', background: '#003580', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
           >Duyệt</button>
         )}
 
-        {currentTab !== 'Đã xóa' && (
+        {role === 'PARTNER' && currentTab === 'Hoạt động' && (
+          <button
+            onClick={() => onUnactive(p.id)}
+            style={{ width: '130px', padding: '8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+          >Dừng hoạt động</button>
+        )}
+
+        {role === 'PARTNER' && currentTab === 'Dừng hoạt động' && (
+          <button
+            onClick={() => onActive(p.id)}
+            style={{ width: '130px', padding: '8px', background: '#dcfce7', color: '#16a34a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+          >Hoạt động lại</button>
+        )}
+
+        {role === 'ADMIN' && currentTab === 'Phê duyệt' && (
           <button
             onClick={() => onDelete(p.id)}
             style={{ width: '130px', padding: '8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
-          >
-            {role === 'ADMIN' && currentTab === 'Chờ duyệt' ? 'Từ chối' : 'Xóa'}
-          </button>
+          >Từ chối</button>
         )}
       </div>
     </div>
@@ -1273,14 +1541,43 @@ function PropertyCard({ p, onDelete, onViewRooms, onApprove, onViewDetail, onEdi
 
 /* ─────────────────────────── Main PropertyList ─────────────────────────── */
 export default function PropertyList() {
-  const { active, wait, deleted, handleDelete: onDelete, handleApprove: onApprove, pendingFilter, setPendingFilter, fetchHotels } = useHotels();
+  const { active, wait, deleted, unactive, handleDelete, handleApprove, handleUnactive, handleActive, pendingFilter, setPendingFilter, fetchHotels } = useHotels();
   const [activeFilter, setActiveFilter] = useState("Hoạt động");
   const [search, setSearch] = useState("");
+  const [roomTypes, setRoomTypes] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:8889/api/room-types/get-all')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRoomTypes(data);
+        else if (data && Array.isArray(data.data)) setRoomTypes(data.data);
+        else setRoomTypes([]);
+      })
+      .catch(err => console.error("Lỗi lấy room types:", err));
+  }, []);
   const [viewRoomsHotel, setViewRoomsHotel] = useState(null);
   const [addRoomForHotelId, setAddRoomForHotelId] = useState(null);
   const [detailHotel, setDetailHotel] = useState(null);
   const [editHotel, setEditHotel] = useState(null);
   const role = sessionStorage.getItem("partner_role");
+
+  const [toast, setToast] = useState(null);
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3000);
+  };
+  const showConfirmToast = (msg, onConfirm) => {
+    setToast({
+      type: 'confirm',
+      msg,
+      onCancel: () => setToast(null),
+      onConfirm: async () => {
+        setToast(null);
+        await onConfirm();
+      },
+    });
+  };
 
   useEffect(() => {
     if (pendingFilter) {
@@ -1291,21 +1588,54 @@ export default function PropertyList() {
 
   const listToFilter = activeFilter === "Hoạt động"
     ? active
-    : activeFilter === "Chờ duyệt"
+    : activeFilter === "Phê duyệt"
       ? wait
-      : (deleted || []);
+      : activeFilter === "Bị từ chối"
+        ? deleted
+        : (unactive || []);
 
   const filtered = listToFilter.filter(
     (p) => (p.name || "").toLowerCase().includes((search || "").toLowerCase())
   );
 
+  const onApproveWrap = async (id) => {
+    const success = await handleApprove(id);
+    if (success) showToast('success', 'Phê duyệt khách sạn thành công!');
+    else showToast('error', 'Phê duyệt thất bại!');
+  };
+
+  const onDeleteWrap = (id) => {
+    showConfirmToast('Bạn có chắc muốn từ chối/xóa khách sạn này?', async () => {
+      const success = await handleDelete(id);
+      if (success) showToast('success', 'Đã từ chối/xóa khách sạn!');
+      else showToast('error', 'Lỗi khi từ chối/xóa!');
+    });
+  };
+
+  const onUnactiveWrap = (id) => {
+    showConfirmToast('Bạn có chắc muốn dừng hoạt động khách sạn này?', async () => {
+      const success = await handleUnactive(id);
+      if (success) showToast('success', 'Dừng hoạt động khách sạn thành công!');
+      else showToast('error', 'Dừng hoạt động thất bại!');
+    });
+  };
+
+  const onActiveWrap = (id) => {
+    showConfirmToast('Bạn có chắc muốn cho khách sạn hoạt động lại?', async () => {
+      const success = await handleActive(id);
+      if (success) showToast('success', 'Kích hoạt khách sạn thành công!');
+      else showToast('error', 'Kích hoạt thất bại!');
+    });
+  };
+
   return (
     <div className="pd-list">
+      <Toast toast={toast} />
       {/* Header row */}
       <div className="pd-list__header">
-        <h2 className="pd-list__title">Các chỗ nghỉ đang hoạt động</h2>
+        <h2 className="pd-list__title">Quản lý khách sạn</h2>
         <div className="pd-list__filters">
-          {["Hoạt động", "Chờ duyệt", "Đã xóa"].map((f) => (
+          {["Hoạt động", "Phê duyệt", "Bị từ chối", "Dừng hoạt động"].map((f) => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
@@ -1340,9 +1670,11 @@ export default function PropertyList() {
             <PropertyCard
               key={p.id}
               p={p}
-              onDelete={onDelete}
+              onDelete={onDeleteWrap}
+              onUnactive={onUnactiveWrap}
+              onActive={onActiveWrap}
               onViewRooms={setViewRoomsHotel}
-              onApprove={onApprove}
+              onApprove={onApproveWrap}
               onViewDetail={setDetailHotel}
               onEditHotel={setEditHotel}
               role={role}
@@ -1376,6 +1708,7 @@ export default function PropertyList() {
             setAddRoomForHotelId(hId);
           }}
           role={role}
+          roomTypes={roomTypes}
         />
       )}
 

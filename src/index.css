@@ -9,6 +9,10 @@
 *{
   font-family: "Times New Roman", Times, serif;
 }
+a {
+  color: inherit;
+  text-decoration: none;
+}
 .font-playfair{
   font-family: Playfair !important;
 }

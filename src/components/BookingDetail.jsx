@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { message } from 'antd';
 import Footer from './Footer';
 
 const BookingDetail = () => {
@@ -61,7 +62,7 @@ const BookingDetail = () => {
 
         // Validation
         if (!formData.contactName || !formData.contactEmail || !formData.contactPhone) {
-            alert("Vui lòng điền đầy đủ các trường bắt buộc.");
+            message.warning('Vui lòng điền đầy đủ các trường bắt buộc.');
             return;
         }
 

@@ -300,7 +300,7 @@ function UploadGrid({ data, field, refEl, onChange }) {
               style={{
                 position: 'absolute', top: '-7px', right: '-7px',
                 width: '20px', height: '20px', borderRadius: '50%',
-                background: '#ef4444', color: 'white', border: 'none',
+                background: 'white', color: 'black', border: 'none',
                 cursor: 'pointer', fontSize: '14px', lineHeight: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
@@ -437,7 +437,17 @@ export default function CreateRoom({ onClose, initialHotelId }) {
         body: payload,
       });
 
-      const resData = await res.json();
+      // const resData = await res.json();
+      const text = await res.text();
+      console.log("RAW RESPONSE:", text);
+
+      let resData = {};
+
+      try {
+        resData = JSON.parse(text);
+      } catch (e) {
+        console.error("JSON parse fail:", e);
+      }
       if (resData.status === 200 || resData.code === 200 || res.ok) {
         setToast({ type: 'success', msg: 'Tạo phòng thành công!' });
         setTimeout(() => { setToast(null); onClose(); }, 1500);

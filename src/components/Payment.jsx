@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { message } from 'antd';
 import Footer from '../components/Footer';
 
 const Payment = () => {
@@ -317,14 +318,14 @@ const Payment = () => {
                     }
                 }
 
-                alert("Đặt phòng thành công!");
+                message.success('Đặt phòng thành công!');
                 navigate('/');
             } else {
-                alert("Lỗi khi đặt phòng: " + (result.message || ""));
+                message.error('Lỗi khi đặt phòng: ' + (result.message || ''));
             }
         } catch (error) {
             console.error("Error creating booking:", error);
-            alert("Có lỗi xảy ra khi tạo đặt phòng.");
+            message.error('Có lỗi xảy ra khi tạo đặt phòng.');
         } finally {
             setIsSubmitting(false);
         }
